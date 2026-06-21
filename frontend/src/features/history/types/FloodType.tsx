@@ -7,5 +7,4 @@ export interface FloodType {
     duration: number,
     peak_rainfall: number,
     dam_level_peak: number
-    view: () => void;
 }

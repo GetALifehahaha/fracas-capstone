@@ -11,8 +11,11 @@ import React from 'react'
 import type { DateRange } from 'react-day-picker'
 import { addDays, format } from 'date-fns'
 import { Calendar } from '@/common/ui/calendar'
+import { useNavigate } from 'react-router-dom'
 
 const FloodHistory = () => {
+
+    const navigate = useNavigate();
 
     const [date, setDate] = React.useState<DateRange | undefined>({
         from: new Date(new Date().getFullYear(), 0, 20),
@@ -27,7 +30,6 @@ const FloodHistory = () => {
             duration: 4.5,
             peak_rainfall: 82.4,
             dam_level_peak: 14.2,
-            view: () => {}
         },
         {
             date: "2026-06-14",
@@ -36,7 +38,6 @@ const FloodHistory = () => {
             duration: 2.8,
             peak_rainfall: 56.7,
             dam_level_peak: 11.8,
-            view: () => {}
         },
         {
             date: "2026-06-13",
@@ -45,7 +46,6 @@ const FloodHistory = () => {
             duration: 1.3,
             peak_rainfall: 24.5,
             dam_level_peak: 8.1,
-            view: () => {}
         },
         {
             date: "2026-06-12",
@@ -54,7 +54,6 @@ const FloodHistory = () => {
             duration: 6.2,
             peak_rainfall: 97.3,
             dam_level_peak: 15.7,
-            view: () => {}
         },
         {
             date: "2026-06-11",
@@ -63,7 +62,6 @@ const FloodHistory = () => {
             duration: 3.7,
             peak_rainfall: 63.9,
             dam_level_peak: 12.5,
-            view: () => {}
         },
         {
             date: "2026-06-10",
@@ -72,7 +70,6 @@ const FloodHistory = () => {
             duration: 5.1,
             peak_rainfall: 88.6,
             dam_level_peak: 14.9,
-            view: () => {}
         },
         {
             date: "2026-06-09",
@@ -81,7 +78,6 @@ const FloodHistory = () => {
             duration: 1.9,
             peak_rainfall: 31.2,
             dam_level_peak: 9.4,
-            view: () => {}
         }
     ];
 
@@ -94,7 +90,7 @@ const FloodHistory = () => {
             <TableCell>{flood.peak_rainfall} mm/hr</TableCell>
             <TableCell>{flood.dam_level_peak} meters</TableCell>
             <TableCell>
-                <Button variant="secondary" size="xs" className="cursor-pointer" onClick={flood.view}>View <ArrowRight /></Button>
+                <Button variant="secondary" size="xs" className="cursor-pointer" onClick={() => navigate(`/history/${index}`)}>View <ArrowRight /></Button>
             </TableCell>
         </TableRow>
     )
@@ -141,13 +137,15 @@ const FloodHistory = () => {
 
                 <Table className='border-border border rounded'>
                     <TableHeader className='bg-accent'>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Barangay</TableHead>
-                        <TableHead>Peak Risk</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Peak Rainfall</TableHead>
-                        <TableHead>Dam Level Peak</TableHead>
-                        <TableHead></TableHead>
+                        <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Barangay</TableHead>
+                            <TableHead>Peak Risk</TableHead>
+                            <TableHead>Duration</TableHead>
+                            <TableHead>Peak Rainfall</TableHead>
+                            <TableHead>Dam Level Peak</TableHead>
+                            <TableHead></TableHead>
+                        </TableRow>
                     </TableHeader>
                     <TableBody>
                         {floodDataList}
