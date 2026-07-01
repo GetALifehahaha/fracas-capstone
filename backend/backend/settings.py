@@ -124,7 +124,9 @@ DATABASES = {
         "USER": config("DB_USER"),
         "PASSWORD": config("DB_PASSWORD"),
         "HOST": config("DB_HOST"),
-        "PORT": config("DB_PORT")
+        "PORT": config("DB_PORT"),
+        # Build the test database from the PostGIS template so GIS types exist.
+        "TEST": {"TEMPLATE": "template_postgis"},
     },
 }
 
