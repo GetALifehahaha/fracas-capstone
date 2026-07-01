@@ -55,6 +55,20 @@ services:
       redis:
         condition: service_started
 
+  celery-beat:
+    build: ./backend
+    container_name: celery_beat
+    # Write the scheduler state file outside the mounted source tree.
+    command: celery -A backend beat --loglevel=info --schedule=/tmp/celerybeat-schedule
+    env_file: .env
+    volumes:
+      - ./backend:/backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   nginx:
     image: nginx:1.25-alpine
     ports:

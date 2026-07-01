@@ -103,6 +103,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
+# Custom user model (extends AbstractUser with phone + verification).
+AUTH_USER_MODEL = 'users.User'
+
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases

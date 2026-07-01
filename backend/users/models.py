@@ -1,11 +1,19 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-# Create your models here.
 
-# Add each user regitration
-class User(models.Model):
-    first_name = models.CharField(max_length=255, blank=True, null=True)
-    last_name = models.CharField(max_length=255, blank=True, null=True)
+class User(AbstractUser):
+    """Project user tied to JWT auth.
 
-    phone_number = models.CharField(max_length=15)
-    email = models.CharField(max_length=255, blank=True, null=True)
+    Extends Django's AbstractUser (username/email/password/permissions) with
+    the fields the alerting subsystem needs. Barangay subscriptions, device
+    tokens, and notification preferences live in their own models (Phase 4).
+    """
+
+    phone_number = models.CharField(
+        max_length=15, unique=True, null=True, blank=True
+    )
+    phone_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.get_username()
