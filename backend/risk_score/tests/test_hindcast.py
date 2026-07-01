@@ -45,6 +45,6 @@ class HindcastScoreTests(TestCase):
         def fetcher(lat, lon, w):
             return hourly_series(w, value=40.0, spike=50.0)
 
-        result = hindcast_score(barangay, when, (0.0, 100.0), fetcher=fetcher)
+        result = hindcast_score(barangay, when, [0.0, 50.0, 100.0], fetcher=fetcher)
         self.assertGreater(result.score, 0)
         self.assertTrue(result.is_degraded)  # dam factor unavailable in hindcast

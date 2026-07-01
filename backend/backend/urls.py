@@ -33,4 +33,6 @@ urlpatterns = [
     path('api/', include('risk_score.urls')),
     path('api/', include('dam_level.urls')),
     path('api/', include('flood_events.urls')),
+    path('api/', include('users.urls')),
+    path('api/', include('alert.urls')),
 ]

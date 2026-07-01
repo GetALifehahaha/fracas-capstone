@@ -184,6 +184,8 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+# When true, tasks run inline (used by the test suite so .delay() executes eagerly).
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=False, cast=bool)
 
 LOGGING = {
     "version": 1,

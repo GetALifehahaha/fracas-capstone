@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import RiskConfig, RiskScore
+from .models import RiskConfig, RiskScore, ValidationRun
 
 
 @admin.register(RiskConfig)
@@ -16,3 +16,10 @@ class RiskScoreAdmin(admin.ModelAdmin):
     search_fields = ("barangay__name",)
     readonly_fields = ("barangay", "score", "category", "breakdown", "is_degraded", "config", "computed_at")
     date_hierarchy = "computed_at"
+
+
+@admin.register(ValidationRun)
+class ValidationRunAdmin(admin.ModelAdmin):
+    list_display = ("id", "status", "events_evaluated", "hits", "recall", "created_by", "created_at")
+    list_filter = ("status",)
+    readonly_fields = tuple(f.name for f in ValidationRun._meta.fields) + ("details",)

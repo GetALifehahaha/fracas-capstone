@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from django.db.models import Max, Min
-
 from barangays.models import Barangay
 from flood_events.models import FloodEvent
 from risk_score.constants import RiskCategory
@@ -50,22 +48,23 @@ class ValidationReport:
         return sum(scores) / len(scores) if scores else None
 
 
-def _elevation_bounds():
-    agg = Barangay.objects.aggregate(low=Min("land_height_mean"), high=Max("land_height_mean"))
-    if agg["low"] is None or agg["high"] is None:
-        return None
-    return (agg["low"], agg["high"])
+def _sorted_elevations() -> list[float]:
+    return sorted(
+        Barangay.objects.filter(land_height_mean__isnull=False).values_list(
+            "land_height_mean", flat=True
+        )
+    )
 
 
 def validate(events=None, *, fetcher=None) -> ValidationReport:
-    bounds = _elevation_bounds()
+    elevations = _sorted_elevations()
     events = events if events is not None else FloodEvent.objects.select_related("barangay")
     fetch_kwargs = {"fetcher": fetcher} if fetcher is not None else {}
 
     outcomes = []
     for event in events:
         try:
-            result = hindcast_score(event.barangay, event.occurred_at, bounds, **fetch_kwargs)
+            result = hindcast_score(event.barangay, event.occurred_at, elevations, **fetch_kwargs)
             outcomes.append(
                 EventOutcome(event, round(result.score, 2), result.category.value, result.category in HIT_CATEGORIES)
             )

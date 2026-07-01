@@ -9,6 +9,7 @@ import logging
 from celery import chain, shared_task
 from django.utils import timezone
 
+from alert.tasks import evaluate_alerts
 from dam_level.tasks import ingest_dam_level
 from rainfall_fetch.tasks import fetch_rainfall_information
 
@@ -62,6 +63,42 @@ def compute_risk_scores() -> dict:
 
 
 @shared_task
+def run_validation_task(run_id: int) -> dict:
+    """Execute the hindcast validation harness and fill the ValidationRun."""
+    from .models import ValidationRun
+    from .services.validation import validate
+
+    run = ValidationRun.objects.get(pk=run_id)
+    run.status = ValidationRun.Status.RUNNING
+    run.save(update_fields=["status"])
+    try:
+        report = validate()
+        run.events_evaluated = len(report.evaluated)
+        run.hits = sum(o.hit for o in report.evaluated)
+        run.recall = report.recall
+        run.mean_score = report.mean_score
+        run.details = [
+            {
+                "barangay": o.event.barangay.name,
+                "occurred_at": o.event.occurred_at.isoformat(),
+                "category": o.category,
+                "score": o.score,
+                "hit": o.hit,
+                "error": o.error,
+            }
+            for o in report.outcomes
+        ]
+        run.status = ValidationRun.Status.DONE
+    except Exception as exc:  # noqa: BLE001 - record any failure for the admin
+        logger.exception("Validation run %s failed", run_id)
+        run.status = ValidationRun.Status.FAILED
+        run.error = str(exc)
+    run.finished_at = timezone.now()
+    run.save()
+    return {"run_id": run_id, "status": run.status}
+
+
+@shared_task
 def run_scoring_pipeline():
     """Ingest dam + rainfall, then compute scores on the fresh data.
 
@@ -73,4 +110,5 @@ def run_scoring_pipeline():
         ingest_dam_level.si(),
         fetch_rainfall_information.si(),
         compute_risk_scores.si(),
+        evaluate_alerts.si(),
     )()

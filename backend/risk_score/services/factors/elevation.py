@@ -1,12 +1,13 @@
 """Static vulnerability: terrain elevation, refined by hazard-map susceptibility.
 
-Lower-lying barangays are more flood-prone (inverse of elevation percentile).
-When a flood-susceptibility rating is available it's blended in equally;
-otherwise elevation alone is used.
+Lower-lying barangays are more flood-prone. Vulnerability is the inverse of a
+barangay's elevation *percentile rank* within the city — rank-based so a lone
+high-mountain barangay doesn't compress everyone else toward "very vulnerable".
+When a flood-susceptibility rating is available it's blended in equally.
 """
 
 from risk_score.constants import FACTOR_VULNERABILITY
-from risk_score.services.normalization import clamp, normalize_position
+from risk_score.services.normalization import clamp, percentile_rank
 
 from .base import FactorInput, FactorResult
 
@@ -17,12 +18,11 @@ class ElevationVulnerabilityFactor:
     def evaluate(self, data: FactorInput) -> FactorResult:
         barangay = data.barangay
         height = barangay.land_height_mean
-        bounds = data.context.elevation_bounds
-        if height is None or bounds is None:
+        elevations = data.context.sorted_elevations
+        if height is None or not elevations:
             return FactorResult(self.key, 0.0, available=False, detail={"reason": "no elevation data"})
 
-        low, high = bounds
-        elevation_vuln = 1.0 - normalize_position(height, low, high)
+        elevation_vuln = 1.0 - percentile_rank(height, elevations)
 
         susceptibility = barangay.flood_susceptibility
         if susceptibility is not None:

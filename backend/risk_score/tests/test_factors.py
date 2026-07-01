@@ -27,8 +27,8 @@ def barangay(height=None, susceptibility=None, downstream=False):
     )
 
 
-def context(bounds=None, dam=None, reading=None):
-    return SimpleNamespace(elevation_bounds=bounds, dam=dam, dam_reading=reading)
+def context(elevations=None, dam=None, reading=None):
+    return SimpleNamespace(sorted_elevations=elevations or [], dam=dam, dam_reading=reading)
 
 
 class RainfallFactorTests(SimpleTestCase):
@@ -46,21 +46,33 @@ class RainfallFactorTests(SimpleTestCase):
 
 
 class ElevationFactorTests(SimpleTestCase):
+    # A population where 5.0 is the lowest and 100.0 an outlier "mountain".
+    POP = [5.0, 10.0, 20.0, 40.0, 100.0]
+
     def test_low_lying_more_vulnerable(self):
-        ctx = context(bounds=(0.0, 10.0))
-        low = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=1.0), None, ctx))
-        high = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=9.0), None, ctx))
-        self.assertGreater(low.value, high.value)
+        ctx = context(elevations=self.POP)
+        low = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=5.0), None, ctx))
+        high = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=100.0), None, ctx))
+        self.assertEqual(low.value, 1.0)   # lowest -> full vulnerability
+        self.assertEqual(high.value, 0.0)  # highest -> none
+
+    def test_outlier_does_not_saturate_mid_barangay(self):
+        # 40m is the 2nd-highest of 5 -> rank 0.75 -> vulnerability 0.25,
+        # not near-1 as raw min-max would give against the 100m outlier.
+        ctx = context(elevations=self.POP)
+        result = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=40.0), None, ctx))
+        self.assertAlmostEqual(result.value, 0.25)
 
     def test_susceptibility_blends_in(self):
-        ctx = context(bounds=(0.0, 10.0))
+        ctx = context(elevations=self.POP)
+        # height 100 -> elevation_vuln 0.0; blended 50/50 with susceptibility 1.0
         result = ElevationVulnerabilityFactor().evaluate(
-            FactorInput(barangay(height=9.0, susceptibility=1.0), None, ctx)
+            FactorInput(barangay(height=100.0, susceptibility=1.0), None, ctx)
         )
-        self.assertAlmostEqual(result.value, 0.55)  # 0.5*0.1 + 0.5*1.0
+        self.assertAlmostEqual(result.value, 0.5)
 
     def test_missing_elevation_unavailable(self):
-        ctx = context(bounds=(0.0, 10.0))
+        ctx = context(elevations=self.POP)
         result = ElevationVulnerabilityFactor().evaluate(FactorInput(barangay(height=None), None, ctx))
         self.assertFalse(result.available)
 

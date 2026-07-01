@@ -4,6 +4,7 @@ from risk_score.services.normalization import (
     clamp,
     normalize_position,
     normalize_rainfall,
+    percentile_rank,
     piecewise_linear,
 )
 
@@ -30,3 +31,10 @@ class NormalizationTests(SimpleTestCase):
     def test_normalize_position_degenerate_range(self):
         self.assertEqual(normalize_position(5, 10, 10), 0.0)
         self.assertAlmostEqual(normalize_position(5, 0, 10), 0.5)
+
+    def test_percentile_rank(self):
+        pop = [5.0, 10.0, 20.0, 40.0, 100.0]
+        self.assertEqual(percentile_rank(5.0, pop), 0.0)     # smallest
+        self.assertEqual(percentile_rank(100.0, pop), 1.0)   # largest
+        self.assertEqual(percentile_rank(40.0, pop), 0.75)   # 2nd highest
+        self.assertEqual(percentile_rank(7.0, []), 0.0)      # empty guard

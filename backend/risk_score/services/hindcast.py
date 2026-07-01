@@ -68,13 +68,15 @@ def reconstruct_rainfall(data: dict, when) -> SimpleNamespace:
     )
 
 
-def hindcast_score(barangay, when, elevation_bounds, *, fetcher=fetch_archive) -> ScoredResult:
+def hindcast_score(barangay, when, sorted_elevations, *, fetcher=None) -> ScoredResult:
+    # Late-bind the default so tests can patch fetch_archive at the module level.
+    fetch = fetcher or fetch_archive
     # Match the archive's Asia/Manila local hours (avoids UTC-vs-local drift).
     if when.tzinfo is not None:
         when = when.astimezone(MANILA)
     centroid = barangay.boundary.centroid
-    data = fetcher(centroid.y, centroid.x, when)
+    data = fetch(centroid.y, centroid.x, when)
     rainfall = reconstruct_rainfall(data, when)
-    context = SimpleNamespace(elevation_bounds=elevation_bounds, dam=None, dam_reading=None)
+    context = SimpleNamespace(sorted_elevations=sorted_elevations, dam=None, dam_reading=None)
     engine = RiskEngine.from_active_config()
     return engine.score(FactorInput(barangay, rainfall, context))

@@ -1,5 +1,26 @@
 from rest_framework import serializers
 
+from .models import ValidationRun
+
+
+class ValidationRunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValidationRun
+        fields = [
+            "id",
+            "status",
+            "created_at",
+            "finished_at",
+            "events_evaluated",
+            "hits",
+            "recall",
+            "mean_score",
+            "details",
+            "error",
+        ]
+        # All fields are computed by the async task; create makes an empty run.
+        read_only_fields = fields
+
 
 class BarangayRiskSerializer(serializers.Serializer):
     """Assembles latest risk + rainfall for one barangay (read-only)."""

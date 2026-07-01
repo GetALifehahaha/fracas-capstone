@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from django.db.models import Max, Min
-
 from barangays.models import Barangay
 from dam_level.models import Dam, DamReading
 from rainfall_fetch.models import Rainfall
@@ -20,7 +18,7 @@ from rainfall_fetch.models import Rainfall
 class ScoringContext:
     barangays: list[Barangay]
     rainfall_by_barangay: dict[int, Rainfall]
-    elevation_bounds: tuple[float, float] | None
+    sorted_elevations: list[float]  # ascending; for percentile-rank vulnerability
     dam: Dam | None = None
     dam_reading: DamReading | None = None
 
@@ -39,8 +37,9 @@ class ScoringContext:
         )
         rainfall_by_barangay = {r.barangay_id: r for r in latest}
 
-        agg = Barangay.objects.aggregate(low=Min("land_height_mean"), high=Max("land_height_mean"))
-        bounds = (agg["low"], agg["high"]) if agg["low"] is not None and agg["high"] is not None else None
+        sorted_elevations = sorted(
+            b.land_height_mean for b in barangays if b.land_height_mean is not None
+        )
 
         dam = Dam.objects.first()
         dam_reading = dam.readings.first() if dam else None  # latest (Meta ordering)
@@ -48,7 +47,7 @@ class ScoringContext:
         return cls(
             barangays=barangays,
             rainfall_by_barangay=rainfall_by_barangay,
-            elevation_bounds=bounds,
+            sorted_elevations=sorted_elevations,
             dam=dam,
             dam_reading=dam_reading,
         )

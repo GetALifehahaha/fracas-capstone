@@ -46,3 +46,18 @@ def normalize_position(value: float, low: float, high: float) -> float:
     if high <= low:
         return 0.0
     return clamp((value - low) / (high - low))
+
+
+def percentile_rank(value: float, sorted_values: list[float]) -> float:
+    """Rank of `value` within a sorted population, 0-1 (smallest -> 0, largest -> 1).
+
+    Rank-based, so extreme outliers (e.g. a lone 785m mountain barangay) don't
+    stretch the scale for the rest — unlike raw min-max normalization.
+    """
+    import bisect
+
+    n = len(sorted_values)
+    if n <= 1:
+        return 0.0
+    below = bisect.bisect_left(sorted_values, value)
+    return clamp(below / (n - 1))
