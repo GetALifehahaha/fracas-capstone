@@ -20,3 +20,7 @@ from .serializers import (
 class BarangayListView(viewsets.ReadOnlyModelViewSet):
     queryset = Barangay.objects.all()
     serializer_class = BarangayListSerializer
+    # The barangay set is bounded and served as one GeoJSON FeatureCollection
+    # for the map, so it must not be paginated (pagination both nests the
+    # features under `results` and truncates to PAGE_SIZE).
+    pagination_class = None

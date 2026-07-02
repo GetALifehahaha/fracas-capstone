@@ -7,7 +7,7 @@ import { AuthContext } from './authContext'
 
 export const AuthProvider = ({children}: {children: React.ReactNode}) => {
     const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
-    const [isInitializing, setInitializing] = useState<boolean>(false);
+    const [isInitializing, setInitializing] = useState<boolean>(true);
     const [error, setError] = useState<AxiosError | null>(null);
 
     useEffect(() => {
@@ -19,7 +19,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
                     {},
                     { withCredentials: true }
                 );
-                tokenService.setAccess(data);
+                tokenService.setAccess(data.access);
                 setAuthenticated(true);
             } catch {
                 setAuthenticated(false);
@@ -55,6 +55,7 @@ export const AuthProvider = ({children}: {children: React.ReactNode}) => {
             setAuthenticated(true);
         } catch (error) {
             setError(error as AxiosError);
+            throw error;
         }
     }
 

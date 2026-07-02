@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from django.conf import settings
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 # Create your views here.
@@ -23,8 +25,13 @@ class CookieTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
 
-        if refresh_token:
-            request.data["refresh"] = refresh_token
+        if not refresh_token:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        request.data["refresh"] = refresh_token
         return super().post(request, *args, **kwargs)
     
     def finalize_response(self, request, response, *args, **kwargs):
