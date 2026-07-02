@@ -1,8 +1,8 @@
-import { X } from 'lucide-react'
+import { AlertTriangle, RotateCw, X, XIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { Card, CardTitle, CardContent } from '@/common/ui/card'
+import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
-import { Progress, ProgressLabel } from '@/common/ui/progress'
+import { Progress } from '@/common/ui/progress'
 import { Badge } from '@/common/ui/badge'
 import {
     ChartContainer,
@@ -15,6 +15,8 @@ import capitalize from '@/common/utils/capitalize'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
 import type { BarangayRisk, RiskFactorBreakdown } from '../types/api'
+import { Button } from '@/common/ui/button'
+import LoadingCard from '@/common/components/LoadingCard'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
@@ -23,15 +25,16 @@ const chartConfig = {
 const FACTOR_LABELS: Record<string, string> = {
     rainfall: 'Rainfall',
     dam: 'Dam / river stage',
-    vulnerability: 'Vulnerability',
+    vulnerability: 'Terrain vulnerability',
 }
 
-const fmt = (v: number | null | undefined, unit = ''): string =>
-    v == null ? '—' : `${v}${unit}`
+/** Format a nullable number, dropping noise digits. */
+const fmt = (v: number | null | undefined): string =>
+    v == null ? '—' : `${Math.round(v * 10) / 10}`
 
 const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className='absolute top-0 right-0 w-1/4 h-full bg-background z-3 border-l shadow-xl'>
-        <div className='h-full overflow-y-auto flex flex-col gap-4 p-4'>{children}</div>
+    <div className='absolute top-1/2 -translate-y-1/2 right-0 z-3 max-h-[80vh] overflow-y-auto w-1/4 border-l bg-background shadow-xl rounded-xl'>
+        <div className='flex h-full flex-col gap-3 overflow-y-auto p-4'>{children}</div>
     </div>
 )
 
@@ -46,142 +49,211 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => (
     </button>
 )
 
-const FactorBar = ({ name, factor }: { name: string; factor: RiskFactorBreakdown }) => (
-    <div className='flex flex-col gap-1'>
-        <div className='flex justify-between text-xs'>
-            <span>{FACTOR_LABELS[name] ?? capitalize(name)}</span>
-            <span className='text-muted-foreground'>
-                {factor.available ? `${Math.round(factor.value * 100)}%` : 'no data'}
+/** A compact metric readout: label above a large value with an optional unit. */
+const StatTile = ({
+    label,
+    value,
+    unit,
+}: {
+    label: string
+    value: string
+    unit?: string
+}) => (
+    <Card size='sm' className='gap-1'>
+        <Label className='text-muted-foreground text-xs'>{label}</Label>
+        <div className='flex items-baseline gap-1'>
+            <span className='text-2xl font-semibold tabular-nums'>{value}</span>
+            {unit && <span className='text-muted-foreground text-xs'>{unit}</span>}
+        </div>
+    </Card>
+)
+
+/**
+ * One factor's row in the breakdown. Shows its own hazard (0–100) and the
+ * *effective* weight it carried this cycle — unavailable factors are dropped
+ * and their weight is spread across the rest, so we surface that here.
+ */
+const FactorRow = ({
+    name,
+    factor,
+    effectiveWeight,
+}: {
+    name: string
+    factor: RiskFactorBreakdown
+    effectiveWeight: number
+}) => (
+    <div className='flex flex-col gap-1.5'>
+        <div className='flex items-center justify-between text-xs'>
+            <span className='flex items-center gap-2'>
+                <span className='font-medium'>{FACTOR_LABELS[name] ?? capitalize(name)}</span>
+                <span className='text-muted-foreground'>
+                    {factor.available ? `${Math.round(effectiveWeight * 100)}% weight` : 'redistributed'}
+                </span>
+            </span>
+            <span className={factor.available ? 'font-medium tabular-nums' : 'text-muted-foreground'}>
+                {factor.available ? Math.round(factor.value * 100) : 'no data'}
             </span>
         </div>
         <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
             <div
-                className='h-full rounded-full bg-foreground/70'
+                className='bg-foreground/70 h-full rounded-full'
                 style={{ width: factor.available ? `${factor.value * 100}%` : 0 }}
             />
         </div>
     </div>
 )
 
-const PanelBody = ({ data }: { data: BarangayRisk }) => {
-    const chartData = [
-        { name: 'Now', rainfall: data.current_rainfall },
-        { name: '1hr', rainfall: data.rainfall_forecast_1hr },
-        { name: '2hr', rainfall: data.rainfall_forecast_2hr },
-        { name: '3hr', rainfall: data.rainfall_forecast_3hr },
-        { name: '4hr', rainfall: data.rainfall_forecast_4hr },
-    ].filter((d) => d.rainfall != null)
-
+const HazardHero = ({ data }: { data: BarangayRisk }) => {
     const category = data.status
-    const roc = data.rainfall_rate_change
+    const score = data.risk_score
 
     return (
-        <>
-            <Card>
-                <CardTitle className='flex items-center justify-between'>
-                    <span>Hazard: {category ? CATEGORY_LABELS[category] : 'No data'}</span>
-                    {category && (
-                        <Badge style={{ backgroundColor: RISK_COLORS[category], color: '#3f0a0a' }}>
-                            {CATEGORY_LABELS[category]}
-                        </Badge>
-                    )}
-                </CardTitle>
-                {data.is_degraded && (
-                    <p className='text-destructive text-xs'>
-                        Score is degraded — some inputs were stale.
-                    </p>
-                )}
-                <div className='grid grid-cols-2 gap-4'>
-                    <Card className='justify-between'>
-                        <Label className='text-xs'>Current Rainfall</Label>
-                        <span className='flex items-end gap-1'>
-                            <h1 className='text-3xl font-semibold'>{fmt(data.current_rainfall)}</h1>
-                            <h5 className='text-muted-foreground'>mm/hr</h5>
+        <Card className='gap-3'>
+            <div className='flex items-start justify-between'>
+                <div className='flex flex-col gap-1'>
+                    <Label className='text-muted-foreground text-xs'>Hazard score</Label>
+                    <div className='flex items-baseline gap-1.5'>
+                        <span className='text-4xl font-bold tabular-nums'>
+                            {score == null ? '—' : Math.round(score)}
                         </span>
-                    </Card>
-                    <Card className='justify-between'>
-                        <Label className='text-xs'>Rate of Change</Label>
-                        <span className='flex items-end gap-1'>
-                            <h1 className='text-3xl font-semibold'>
-                                {roc == null ? '—' : `${roc > 0 ? '+' : ''}${roc}`}
-                            </h1>
-                            <h5 className='text-muted-foreground'>mm/hr</h5>
-                        </span>
-                    </Card>
-                </div>
-                <Progress value={data.risk_score ?? 0}>
-                    <ProgressLabel className='flex w-full justify-between'>
-                        <span>Final Hazard Risk Score</span>
-                        <span>{data.risk_score == null ? '—' : `${Math.round(data.risk_score)}%`}</span>
-                    </ProgressLabel>
-                </Progress>
-            </Card>
-
-            {data.breakdown && (
-                <Card>
-                    <CardTitle>Why this score</CardTitle>
-                    <div className='flex flex-col gap-3'>
-                        {Object.entries(data.breakdown).map(([name, factor]) => (
-                            <FactorBar key={name} name={name} factor={factor} />
-                        ))}
+                        <span className='text-muted-foreground text-sm'>/ 100</span>
                     </div>
-                </Card>
-            )}
-
-            <Card>
-                <CardTitle>Rainfall</CardTitle>
-                <div className='flex flex-col gap-2'>
-                    {[
-                        ['Current', data.current_rainfall],
-                        ['Forecast (1 hr)', data.rainfall_forecast_1hr],
-                        ['Forecast (2 hr)', data.rainfall_forecast_2hr],
-                        ['Forecast (3 hr)', data.rainfall_forecast_3hr],
-                        ['Forecast (4 hr)', data.rainfall_forecast_4hr],
-                        ['Accumulated (24 hr)', data.accumulated_24hr],
-                    ].map(([label, value]) => (
-                        <Card size='sm' className='flex-row justify-between' key={label as string}>
-                            <Label>{label}</Label>
-                            <h1>{fmt(value as number | null)} mm</h1>
-                        </Card>
-                    ))}
                 </div>
-            </Card>
+                <Badge
+                    style={
+                        category
+                            ? { backgroundColor: RISK_COLORS[category], color: '#3f0a0a' }
+                            : undefined
+                    }
+                    variant={category ? 'default' : 'secondary'}
+                >
+                    {category ? CATEGORY_LABELS[category] : 'No data'}
+                </Badge>
+            </div>
 
-            {chartData.length > 1 && (
-                <Card className='h-fit py-2'>
-                    <Label>Rainfall Trend</Label>
-                    <CardContent>
-                        <ChartContainer config={chartConfig}>
-                            <LineChart
-                                accessibilityLayer
-                                data={chartData}
-                                margin={{ top: 12, left: 2, right: 12 }}
-                            >
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                                <Line
-                                    dataKey='rainfall'
-                                    type='natural'
-                                    stroke='var(--color-rainfall)'
-                                    strokeWidth={2}
-                                    dot={{ fill: 'var(--color-rainfall)' }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </LineChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-            )}
+            <Progress value={score ?? 0} />
 
-            {data.computed_at && (
-                <p className='text-muted-foreground text-center text-xs'>
-                    Updated {formatDistanceToNow(new Date(data.computed_at), { addSuffix: true })}
-                </p>
+            {data.is_degraded && (
+                <div className='text-destructive flex items-center gap-1.5 text-xs'>
+                    <AlertTriangle className='size-3.5 shrink-0' />
+                    <span>Degraded — some inputs were stale; weights were redistributed.</span>
+                </div>
             )}
-        </>
+        </Card>
     )
 }
+
+const Conditions = ({ data }: { data: BarangayRisk }) => {
+    const roc = data.rainfall_rate_change
+    const forecasts = [
+        data.rainfall_forecast_1hr,
+        data.rainfall_forecast_2hr,
+        data.rainfall_forecast_3hr,
+        data.rainfall_forecast_4hr,
+    ].filter((v): v is number => v != null)
+    const peak = forecasts.length ? Math.max(...forecasts) : null
+
+    return (
+        <div className='grid grid-cols-2 gap-3'>
+            <StatTile label='Current rainfall' value={fmt(data.current_rainfall)} unit='mm/hr' />
+            <StatTile
+                label='Rate of change'
+                value={roc == null ? '—' : `${roc > 0 ? '+' : ''}${fmt(roc)}`}
+                unit='mm/hr'
+            />
+            <StatTile label='Peak forecast (4 hr)' value={fmt(peak)} unit='mm/hr' />
+            <StatTile label='Accumulated (24 hr)' value={fmt(data.accumulated_24hr)} unit='mm' />
+        </div>
+    )
+}
+
+const Breakdown = ({ breakdown }: { breakdown: Record<string, RiskFactorBreakdown> }) => {
+    const entries = Object.entries(breakdown)
+    const availableWeight = entries.reduce(
+        (sum, [, f]) => sum + (f.available ? f.raw_weight : 0),
+        0,
+    )
+
+    return (
+        <Card className='gap-3'>
+            <div>
+                <Label className='font-medium'>Why this score</Label>
+                <p className='text-muted-foreground text-xs'>Each input scored 0–100, blended by weight.</p>
+            </div>
+            <div className='flex flex-col gap-3'>
+                {entries.map(([name, factor]) => (
+                    <FactorRow
+                        key={name}
+                        name={name}
+                        factor={factor}
+                        effectiveWeight={availableWeight > 0 ? factor.raw_weight / availableWeight : 0}
+                    />
+                ))}
+            </div>
+        </Card>
+    )
+}
+
+const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
+    const chartData = [
+        { name: 'Now', rainfall: data.current_rainfall },
+        { name: '+1 hr', rainfall: data.rainfall_forecast_1hr },
+        { name: '+2 hr', rainfall: data.rainfall_forecast_2hr },
+        { name: '+3 hr', rainfall: data.rainfall_forecast_3hr },
+        { name: '+4 hr', rainfall: data.rainfall_forecast_4hr },
+    ].filter((d) => d.rainfall != null)
+
+    return (
+        <Card className='gap-1 py-3'>
+            <Label>Rainfall forecast</Label>
+            {chartData.length > 1 ? (
+                <CardContent className='px-0'>
+                    <ChartContainer config={chartConfig}>
+                        <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 12 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
+                            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                            <Line
+                                dataKey='rainfall'
+                                type='natural'
+                                stroke='var(--color-rainfall)'
+                                strokeWidth={2}
+                                dot={{ fill: 'var(--color-rainfall)' }}
+                                activeDot={{ r: 6 }}
+                            />
+                        </LineChart>
+                    </ChartContainer>
+                </CardContent>
+            ) : (
+                <p className='text-muted-foreground text-xs'>Forecast data unavailable.</p>
+            )}
+        </Card>
+    )
+}
+
+const PanelBody = ({ data }: { data: BarangayRisk }) => (
+    <>
+        <HazardHero data={data} />
+        <Conditions data={data} />
+        {data.breakdown && <Breakdown breakdown={data.breakdown} />}
+        <RainfallTrend data={data} />
+
+        {(data.computed_at || data.recorded_at) && (
+            <div className='text-muted-foreground mt-auto flex flex-col gap-0.5 pt-2 text-center text-xs'>
+                {data.computed_at && (
+                    <span>
+                        Scored {formatDistanceToNow(new Date(data.computed_at), { addSuffix: true })}
+                    </span>
+                )}
+                {data.recorded_at && (
+                    <span>
+                        Rainfall read {formatDistanceToNow(new Date(data.recorded_at), { addSuffix: true })}
+                    </span>
+                )}
+            </div>
+        )}
+    </>
+)
 
 interface BarangayPanelProps {
     barangayId: number
@@ -193,22 +265,24 @@ const BarangayPanel = ({ barangayId, onClose }: BarangayPanelProps) => {
 
     return (
         <Shell>
-            <div className='flex items-center justify-between'>
+            <div className='flex items-start justify-between'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
                 <CloseButton onClose={onClose} />
             </div>
 
-            {isLoading && <p className='text-muted-foreground text-sm'>Loading…</p>}
+            {isLoading && <LoadingCard />}
             {isError && (
-                <Card className='items-start gap-2'>
-                    <p className='text-destructive text-sm'>Could not load barangay detail.</p>
-                    <button
-                        type='button'
-                        onClick={() => refetch()}
-                        className='text-sm underline underline-offset-2'
-                    >
-                        Retry
-                    </button>
+                <Card className='items-center gap-2'>
+                    <div className='flex items-center gap-1'>
+                        <XIcon className='text-destructive' strokeOpacity={0.5} />
+                        <h1 className='text-destructive/80 text-center font-semibold'>
+                            Barangay detail did not load properly.
+                        </h1>
+                    </div>
+                    <Button type='button' onClick={() => refetch()} className='mt-4'>
+                        <RotateCw />
+                        Reload Barangay Information
+                    </Button>
                 </Card>
             )}
             {data && <PanelBody data={data} />}

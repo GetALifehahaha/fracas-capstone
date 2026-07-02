@@ -16,12 +16,22 @@ const FILL = 'barangay-fill'
 const DIM = 'barangay-dim'
 const LINE = 'barangay-line'
 const OUTLINE = 'barangay-selected'
+const BASE_WASH = 'basemap-wash'
 const NONE_ID = -1
+
+/**
+ * A white wash over the basemap so its roads/buildings fade back without
+ * darkening the map — keeps the light look while letting the choropleth lead.
+ */
+const BASE_WASH_COLOR = '#ffffff'
+const BASE_WASH_OPACITY = 0.5
 
 interface Props {
     data: RiskFeatureCollection
     selectedId: number | null
     onSelect: (id: number | null) => void
+    /** Reports the hovered barangay id (or null on leave); fires only on change. */
+    onHover: (id: number | null) => void
     /** Pixels reserved on the right for the detail panel (0 when closed). */
     panelWidth: number
 }
@@ -43,15 +53,17 @@ const fitBox = (
     })
 }
 
-const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) => {
+const BarangayChoropleth = ({ data, selectedId, onSelect, onHover, panelWidth }: Props) => {
     const { map, isLoaded } = useMap()
     const hoveredRef = useRef<number | null>(null)
     const didFitRef = useRef(false)
-    // Keep the latest handler reachable from the stable map listener.
+    // Keep the latest handlers reachable from the stable map listeners.
     const onSelectRef = useRef(onSelect)
+    const onHoverRef = useRef(onHover)
     useEffect(() => {
         onSelectRef.current = onSelect
-    }, [onSelect])
+        onHoverRef.current = onHover
+    }, [onSelect, onHover])
 
     // Create source + layers once the style is ready.
     useEffect(() => {
@@ -59,6 +71,21 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) =
         const beforeId = firstSymbolLayerId(map)
 
         map.addSource(SOURCE, { type: 'geojson', data, promoteId: 'id' })
+
+        // Wash the basemap so its roads/buildings recede behind the choropleth.
+        // Sits below the fills (added next) but above every basemap layer, so it
+        // fades the map detail without muddying the risk colours or the labels.
+        map.addLayer(
+            {
+                id: BASE_WASH,
+                type: 'background',
+                paint: {
+                    'background-color': BASE_WASH_COLOR,
+                    'background-opacity': BASE_WASH_OPACITY,
+                },
+            },
+            beforeId,
+        )
 
         map.addLayer(
             {
@@ -76,7 +103,7 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) =
                 type: 'fill',
                 source: SOURCE,
                 filter: ['!=', ['id'], NONE_ID],
-                paint: { 'fill-color': '#0a0a0a', 'fill-opacity': 0 },
+                paint: { 'fill-color': '#0a0a0a', 'fill-opacity': 1 },
             },
             beforeId,
         )
@@ -87,8 +114,9 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) =
                 source: SOURCE,
                 paint: {
                     'line-color': '#7f1d1d',
-                    'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2, 0.6],
-                    'line-opacity': 0.35,
+                    // Bolder strokes so the city's overall shape reads at a glance.
+                    'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 2.5, 1.5],
+                    'line-opacity': 0.5,
                 },
             },
             beforeId,
@@ -116,6 +144,9 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) =
                 map.setFeatureState({ source: SOURCE, id: hoveredRef.current }, { hover: false })
             hoveredRef.current = id
             if (id != null) map.setFeatureState({ source: SOURCE, id }, { hover: true })
+            // Only fires on an actual change (guarded above), so the tooltip
+            // re-renders per barangay, not per mouse-move pixel.
+            onHoverRef.current(id)
         }
         const handleMove = (e: MapLayerMouseEvent) => {
             map.getCanvas().style.cursor = 'pointer'
@@ -135,7 +166,8 @@ const BarangayChoropleth = ({ data, selectedId, onSelect, panelWidth }: Props) =
             map.off('mousemove', FILL, handleMove)
             map.off('mouseleave', FILL, handleLeave)
             if (!map.style) return
-            for (const id of [FILL, DIM, LINE, OUTLINE]) if (map.getLayer(id)) map.removeLayer(id)
+            for (const id of [FILL, DIM, LINE, OUTLINE, BASE_WASH])
+                if (map.getLayer(id)) map.removeLayer(id)
             if (map.getSource(SOURCE)) map.removeSource(SOURCE)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

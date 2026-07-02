@@ -39,19 +39,20 @@ const RiskCard = ({ group, onSelect }: RiskCardProps) => {
                 {isExpanded ? (
                     <div className='mt-4 flex w-full flex-col gap-1'>
                         <h5 className='font-semibold'>Affected Barangays:</h5>
-                        {barangays.map((b) => (
-                            <Card
-                                size='sm'
-                                key={b.id}
-                                className='flex-row items-center justify-between px-2'
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <h5>{b.name}</h5>
-                                <Button variant='outline' className='cursor-pointer' onClick={() => onSelect(b.id)}>
-                                    View
-                                </Button>
-                            </Card>
-                        ))}
+                        <div className='flex max-h-64 flex-col gap-2 overflow-y-auto p-1'>
+                            {barangays.map((b) => (
+                                <Card
+                                    key={b.id}
+                                    className='flex-row items-center justify-between py-4'
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <h5>{b.name}</h5>
+                                    <Button size="sm" variant='outline' className='cursor-pointer' onClick={() => onSelect(b.id)}>
+                                        View
+                                    </Button>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                 ) : (
                     <h5 className='text-muted-foreground text-sm'>

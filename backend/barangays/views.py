@@ -1,4 +1,5 @@
 # DJANGO
+from django.db.models import Count
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -18,7 +19,10 @@ from .serializers import (
                   name='list',
                   )
 class BarangayListView(viewsets.ReadOnlyModelViewSet):
-    queryset = Barangay.objects.all()
+    # `subscriber_count` (residents subscribed to this barangay's alerts) is
+    # annotated here so it rides along in each feature's GeoJSON properties —
+    # the map tooltip reads it client-side with no extra request.
+    queryset = Barangay.objects.annotate(subscriber_count=Count("subscribers"))
     serializer_class = BarangayListSerializer
     # The barangay set is bounded and served as one GeoJSON FeatureCollection
     # for the map, so it must not be paginated (pagination both nests the

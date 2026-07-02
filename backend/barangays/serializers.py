@@ -1,11 +1,21 @@
+from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 from .models import (
     Barangay
 )
 
 class BarangayListSerializer(GeoFeatureModelSerializer):
+    # Annotated on the queryset (see BarangayListView); count of residents
+    # subscribed to this barangay's alerts.
+    subscriber_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Barangay
         geo_field = "boundary"
-        id_field = "id"
-        fields = ["id", "name", "code", "area_square_km"]
+        # Keep `id` inside `properties` (not the GeoJSON top-level Feature id) so
+        # the frontend can promote it via `promoteId: 'id'` and join the risk
+        # snapshot on `feature.properties.id`. With id_field set, DRF-GIS would
+        # move the pk to the top level and drop it from properties, which made
+        # `feature.properties.id` undefined → `NaN` in the detail request URL.
+        id_field = False
+        fields = ["id", "name", "code", "area_square_km", "subscriber_count"]

@@ -65,6 +65,8 @@ export interface BarangayBaseProperties {
     name: string
     code: string
     area_square_km: number
+    /** Residents subscribed to this barangay's alerts (annotated server-side). */
+    subscriber_count: number
 }
 
 /** Properties after joining the risk snapshot onto the geometry (client-side). */
