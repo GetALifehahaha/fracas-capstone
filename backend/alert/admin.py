@@ -1,6 +1,20 @@
 from django.contrib import admin
 
-from .models import AlertState, Notification, NotificationLog
+from .models import AlertEvent, AlertState, Notification, NotificationLog
+
+
+@admin.register(AlertEvent)
+class AlertEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at", "barangay", "kind", "level", "source",
+        "recipients", "suppressed", "triggered_by",
+    )
+    list_filter = ("kind", "source", "level", "suppressed")
+    search_fields = ("barangay__name", "dispatch_key")
+    readonly_fields = [f.name for f in AlertEvent._meta.fields]
+
+    def has_add_permission(self, request):
+        return False  # append-only audit log; written by the system
 
 
 @admin.register(AlertState)

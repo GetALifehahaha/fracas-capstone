@@ -1,11 +1,10 @@
 import { useAuth } from '@/features/auth/context/useAuth'
-import React from 'react'
 import { Button } from '@/common/ui/button';
 
 
 const TestAuth = () => {
 
-  const { login, logout } = useAuth();
+  const { logout } = useAuth();
 
   return (
     <div>

@@ -4,13 +4,20 @@ from uuid import uuid4
 
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
-from .models import Notification
-from .serializers import BroadcastSerializer, NotificationSerializer
+from risk_score.constants import RiskCategory
+from users.permissions import IsOperator
+
+from .constants import EventKind, EventSource
+from .models import AlertEvent, Notification
+from .serializers import (
+    AlertEventSerializer,
+    BroadcastSerializer,
+    NotificationSerializer,
+)
 from .services.dispatcher import broadcast
 
 
@@ -34,9 +41,9 @@ class NotificationViewSet(mixins.ListModelMixin, GenericViewSet):
 
 
 class BroadcastView(APIView):
-    """Admin-only: push a custom advisory to a barangay's subscribers."""
+    """Operator action: push a custom advisory to a barangay's subscribers."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOperator]
 
     def post(self, request):
         serializer = BroadcastSerializer(data=request.data)
@@ -46,7 +53,37 @@ class BroadcastView(APIView):
         title = data.get("title") or f"Advisory: {barangay.name}"
         dispatch_key = f"broadcast:{barangay.id}:{uuid4().hex}"
         recipients = broadcast(barangay, title, data["message"], dispatch_key)
+        AlertEvent.objects.create(
+            barangay=barangay,
+            level=RiskCategory.CRITICAL,
+            kind=EventKind.BROADCAST,
+            source=EventSource.OPERATOR,
+            recipients=recipients,
+            triggered_by=request.user,
+            dispatch_key=dispatch_key,
+        )
         return Response(
             {"recipients": recipients, "dispatch_key": dispatch_key},
             status=status.HTTP_201_CREATED,
         )
+
+
+class AlertEventListView(mixins.ListModelMixin, GenericViewSet):
+    """Operator audit log: system-wide history of alert transitions.
+
+    Read-only and filterable by `barangay`, `source`, and `kind`. Distinct from
+    the per-user `NotificationViewSet` feed — this is every episode, including
+    zero-recipient and suppressed ones.
+    """
+
+    permission_classes = [IsOperator]
+    serializer_class = AlertEventSerializer
+
+    def get_queryset(self):
+        qs = AlertEvent.objects.select_related("barangay", "triggered_by")
+        params = self.request.query_params
+        for field in ("barangay", "source", "kind"):
+            value = params.get(field)
+            if value:
+                qs = qs.filter(**{field: value})
+        return qs

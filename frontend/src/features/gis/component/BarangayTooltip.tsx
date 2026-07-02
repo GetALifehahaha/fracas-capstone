@@ -28,7 +28,7 @@ const HazardBadge = ({ category }: { category: BarangayRiskProperties['category'
     const textColor: string = category === "low" ? '#3f0a0a' : '#ffffff';
 
     return (
-        <Badge style={{ backgroundColor: RISK_COLORS[category], color: {textColor} }}>
+        <Badge style={{ backgroundColor: RISK_COLORS[category], color: textColor }}>
             {CATEGORY_LABELS[category]}
         </Badge>
     )

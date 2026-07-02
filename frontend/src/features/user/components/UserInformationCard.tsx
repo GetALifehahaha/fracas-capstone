@@ -1,7 +1,5 @@
 import type { Role } from '@/common/types/Role'
-import { Card, CardTitle } from '@/common/ui/card'
-import capitalize from '@/common/utils/capitalize'
-import React from 'react'
+import { Card } from '@/common/ui/card'
 import RoleBadge from './RoleBadge'
 import UserActiveBadge from './UserActiveBadge'
 

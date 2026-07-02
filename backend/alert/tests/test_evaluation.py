@@ -15,7 +15,8 @@ class AlertStateMachineTests(TestCase):
     def setUp(self):
         self.barangay = make_barangay()
         # No subscribers needed to exercise the transition logic.
-        self.dispatch_patch = patch("alert.services.evaluation.dispatch")
+        # dispatch returns the recipient count (an int) the evaluator now logs.
+        self.dispatch_patch = patch("alert.services.evaluation.dispatch", return_value=1)
         self.dispatch = self.dispatch_patch.start()
         self.addCleanup(self.dispatch_patch.stop)
 

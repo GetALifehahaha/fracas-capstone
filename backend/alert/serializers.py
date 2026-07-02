@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from barangays.models import Barangay
 
-from .models import Notification
+from .models import AlertEvent, Notification
 
 
 class BroadcastSerializer(serializers.Serializer):
@@ -19,4 +19,22 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ["id", "barangay", "barangay_name", "category", "title", "body", "is_read", "created_at"]
+        read_only_fields = fields
+
+
+class AlertEventSerializer(serializers.ModelSerializer):
+    """Read-only row for the operator audit log."""
+
+    barangay_name = serializers.CharField(source="barangay.name", read_only=True)
+    triggered_by_username = serializers.CharField(
+        source="triggered_by.username", read_only=True, default=None
+    )
+
+    class Meta:
+        model = AlertEvent
+        fields = [
+            "id", "barangay", "barangay_name", "level", "kind", "source",
+            "score", "recipients", "suppressed", "triggered_by_username",
+            "created_at",
+        ]
         read_only_fields = fields

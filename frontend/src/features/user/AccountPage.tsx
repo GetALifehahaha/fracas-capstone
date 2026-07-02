@@ -1,17 +1,19 @@
 import { Card, CardTitle } from '@/common/ui/card'
 import UserInformationCard from './components/UserInformationCard'
-import type { Role } from '@/common/types/Role'
 import { Separator } from '@/common/ui/separator'
-import { Label } from '@/common/ui/label'
 import ProfileDetailsCard from './components/ProfileDetailsCard'
 import { Button } from '@/common/ui/button'
+import { useAuth } from '@/features/auth/context/useAuth'
 
 const AccountPage = () => {
+
+	// role comes from the session (JWT claim); the rest is placeholder until the
+	// account API (djoser `/users/me/`) is wired in Phase 4.
+	const { role } = useAuth()
 
 	const account = {
 		first_name: "Ahlan-nour",
 		last_name: "Sencio",
-		role: "staff",
 		is_active: true,
 
 		email: "sencioahlannour@gmail.com",
@@ -21,7 +23,7 @@ const AccountPage = () => {
 	return (
 		<div className='flex p-2 h-full'>
 			<Card className='w-1/3 flex flex-col p-2 bg-olive-50'>
-				<UserInformationCard first_name={account.first_name} last_name={account.last_name} role={account.role} is_active={account.is_active} />
+				<UserInformationCard first_name={account.first_name} last_name={account.last_name} role={role} is_active={account.is_active} />
 				<Separator>
 				</Separator>
 

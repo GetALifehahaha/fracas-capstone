@@ -1,6 +1,5 @@
 import { Badge } from '@/common/ui/badge'
 import { cn } from '@/common/utils/utils'
-import React from 'react'
 
 const UserActiveBadge = ({
     isActive = true

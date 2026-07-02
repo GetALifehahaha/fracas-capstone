@@ -4,8 +4,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .serializers_jwt import RoleTokenObtainPairSerializer
+
 # Create your views here.
 class CookieTokenObtainPairView(TokenObtainPairView):
+    serializer_class = RoleTokenObtainPairSerializer
+
     def finalize_response(self, request, response, *args, **kwargs):
         if (response.data.get("refresh")):
             response.set_cookie(

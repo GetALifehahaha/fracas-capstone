@@ -8,6 +8,8 @@ import FloodHistory from '@/features/history/FloodHistory'
 import FloodEventDetail from '@/features/history/FloodEventDetail'
 import NotFound from '@/common/pages/NotFound'
 import AccountPage from '@/features/user/AccountPage'
+import AlertsPage from '@/features/alerts/AlertsPage'
+import OperatorRoute from './OperatorRoute'
 
 
 const Routers = () => {
@@ -21,6 +23,7 @@ const Routers = () => {
         <Route path='/history' element={<FloodHistory />} />
         <Route path='/history/:id' element={<FloodEventDetail />} />
         <Route path='/me' element={<AccountPage />} />
+        <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
       </Route>
       <Route path='*' element={<NotFound />} />
     </Routes>

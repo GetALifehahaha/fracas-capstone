@@ -2,7 +2,7 @@
 
 from rest_framework import mixins
 from rest_framework.generics import RetrieveAPIView, get_object_or_404
-from rest_framework.permissions import IsAdminUser
+from users.permissions import IsAdmin
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
@@ -46,7 +46,7 @@ class ValidationRunViewSet(
 
     queryset = ValidationRun.objects.all()
     serializer_class = ValidationRunSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdmin]
 
     def perform_create(self, serializer):
         run = serializer.save(created_by=self.request.user)

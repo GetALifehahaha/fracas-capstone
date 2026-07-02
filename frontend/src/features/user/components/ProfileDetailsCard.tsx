@@ -1,6 +1,5 @@
 import { Label } from '@/common/ui/label'
 import { Separator } from '@/common/ui/separator'
-import React from 'react'
 
 interface ProfileDetailsProps {
     email: string,

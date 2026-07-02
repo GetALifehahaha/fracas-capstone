@@ -2,12 +2,14 @@
 
 Liveness and readiness are unauthenticated so an orchestrator / uptime monitor
 can probe them; they expose no sensitive data. The detailed status report
-(includes ingestion internals) is admin-only.
+(includes ingestion internals) is operator-gated.
 """
 
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from users.permissions import IsOperator
 
 from .services import health
 
@@ -32,7 +34,7 @@ class ReadinessView(APIView):
 
 
 class StatusView(APIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsOperator]
 
     def get(self, request):
         return Response(health.status_report())

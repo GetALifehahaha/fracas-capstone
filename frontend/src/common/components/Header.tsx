@@ -1,6 +1,7 @@
 import { ButtonGroup } from '../ui/button-group'
 import { Button } from '../ui/button'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/features/auth/context/useAuth'
 
 
 
@@ -27,6 +28,7 @@ const Avatar = ({name}: {name: string}) => {
 
 const Header = () => {
 
+    const { isOperator } = useAuth()
 
     const dummyUser = {
         first_name: "Ahlan-nour",
@@ -36,10 +38,11 @@ const Header = () => {
     const links = [
         {name: "Dashboard", link: "/"},
         {name: "Flood History", link: "/history"},
-        {name: "Reports", link: "/reports"},
+        // Operator-only console; residents never see it.
+        ...(isOperator ? [{name: "Alerts", link: "/alerts"}] : []),
     ]
 
-    const linkList = links.map(({name, link}) => 
+    const linkList = links.map(({name, link}) =>
         <Button 
             variant="link"
             key={link}>
