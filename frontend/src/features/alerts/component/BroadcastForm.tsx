@@ -1,10 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/common/ui/card'
+import { Card } from '@/common/ui/card'
 import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Textarea } from '@/common/ui/textarea'
 import { Button } from '@/common/ui/button'
-import { cn } from '@/common/utils/utils'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/common/ui/select'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useBroadcast } from '../hooks/useBroadcast'
 
@@ -24,6 +30,7 @@ const BroadcastForm = () => {
                 .sort((a, b) => a.name.localeCompare(b.name)),
         [collection],
     )
+    const selectedName = options.find((o) => String(o.id) === barangay)?.name
 
     const canSend = barangay !== '' && message.trim().length > 0 && !broadcast.isPending
 
@@ -41,44 +48,44 @@ const BroadcastForm = () => {
         )
     }
 
-    const selectClasses =
-        'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50'
-
     return (
-        <Card className='h-fit'>
-            <CardHeader>
-                <CardTitle>Broadcast advisory</CardTitle>
-                <CardDescription>
-                    Send a manual alert to a barangay&apos;s subscribers across every channel
-                    they&apos;ve opted into. Recorded in the alert log.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit}>
-                    <FieldGroup>
+        <Card size='sm' className='my-4 gap-4'>
+            <div>
+                <h2 className='text-sm font-semibold'>Broadcast advisory</h2>
+                <p className='text-xs text-black/50'>
+                    Send a manual alert to a barangay&apos;s subscribers. Recorded in the log below.
+                </p>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+                <FieldGroup className='gap-3'>
+                    <div className='grid grid-cols-1 gap-3 md:grid-cols-[minmax(12rem,16rem)_1fr]'>
                         <Field>
                             <FieldLabel htmlFor='broadcast-barangay'>Target barangay</FieldLabel>
-                            <select
+                            <Select
                                 id='broadcast-barangay'
-                                className={selectClasses}
                                 value={barangay}
+                                onValueChange={(v) => setBarangay(String(v))}
                                 disabled={loadingBarangays}
-                                onChange={(e) => setBarangay(e.target.value)}
                             >
-                                <option value='' disabled>
-                                    {loadingBarangays ? 'Loading…' : 'Select a barangay'}
-                                </option>
-                                {options.map((o) => (
-                                    <option key={o.id} value={o.id}>
-                                        {o.name}
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectTrigger className='w-full'>
+                                    <SelectValue placeholder={loadingBarangays ? 'Loading…' : 'Select a barangay'}>
+                                        {selectedName}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className='max-h-72'>
+                                    {options.map((o) => (
+                                        <SelectItem key={o.id} value={String(o.id)}>
+                                            {o.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </Field>
 
                         <Field>
                             <FieldLabel htmlFor='broadcast-title'>
-                                Title <span className='text-muted-foreground'>(optional)</span>
+                                Title <span className='text-black/40'>(optional)</span>
                             </FieldLabel>
                             <Input
                                 id='broadcast-title'
@@ -88,37 +95,37 @@ const BroadcastForm = () => {
                                 onChange={(e) => setTitle(e.target.value)}
                             />
                         </Field>
+                    </div>
 
-                        <Field>
-                            <FieldLabel htmlFor='broadcast-message'>Message</FieldLabel>
-                            <Textarea
-                                id='broadcast-message'
-                                value={message}
-                                rows={4}
-                                placeholder='e.g. Tumaga river rising fast — move to higher ground now.'
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                        </Field>
+                    <Field>
+                        <FieldLabel htmlFor='broadcast-message'>Message</FieldLabel>
+                        <Textarea
+                            id='broadcast-message'
+                            value={message}
+                            rows={3}
+                            placeholder='e.g. Tumaga river rising fast — move to higher ground now.'
+                            onChange={(e) => setMessage(e.target.value)}
+                        />
+                    </Field>
 
-                        <div className='flex items-center gap-3'>
-                            <Button type='submit' disabled={!canSend} className='cursor-pointer'>
-                                {broadcast.isPending ? 'Sending…' : 'Send broadcast'}
-                            </Button>
-                            {broadcast.isSuccess && (
-                                <FieldDescription className='text-emerald-600'>
-                                    Sent to {broadcast.data.recipients}{' '}
-                                    {broadcast.data.recipients === 1 ? 'subscriber' : 'subscribers'}.
-                                </FieldDescription>
-                            )}
-                            {broadcast.isError && (
-                                <FieldDescription className={cn('text-destructive')}>
-                                    Failed to send. Try again.
-                                </FieldDescription>
-                            )}
-                        </div>
-                    </FieldGroup>
-                </form>
-            </CardContent>
+                    <div className='flex items-center gap-3'>
+                        <Button type='submit' size='sm' disabled={!canSend} className='cursor-pointer'>
+                            {broadcast.isPending ? 'Sending…' : 'Send broadcast'}
+                        </Button>
+                        {broadcast.isSuccess && (
+                            <FieldDescription className='text-emerald-600'>
+                                Sent to {broadcast.data.recipients}{' '}
+                                {broadcast.data.recipients === 1 ? 'subscriber' : 'subscribers'}.
+                            </FieldDescription>
+                        )}
+                        {broadcast.isError && (
+                            <FieldDescription className='text-destructive'>
+                                Failed to send. Try again.
+                            </FieldDescription>
+                        )}
+                    </div>
+                </FieldGroup>
+            </form>
         </Card>
     )
 }

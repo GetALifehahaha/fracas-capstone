@@ -1,9 +1,12 @@
-import { AlertTriangle, RotateCw, X, XIcon } from 'lucide-react'
+import { AlertTriangle, History, RotateCw, X, XIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
 import { Progress } from '@/common/ui/progress'
 import { Badge } from '@/common/ui/badge'
+import { useAuth } from '@/features/auth/context/useAuth'
+import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
 import {
     ChartContainer,
     ChartTooltip,
@@ -231,9 +234,33 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
+/** Operator-only actions for the selected barangay: broadcast + audit history. */
+const Actions = ({ id, name }: { id: number; name: string }) => {
+    const { isOperator } = useAuth()
+    const navigate = useNavigate()
+
+    if (!isOperator) return null
+
+    return (
+        <div className='flex gap-2'>
+            <QuickAlertDialog barangayId={id} barangayName={name} triggerClassName='flex-1 cursor-pointer' />
+            <Button
+                variant='outline'
+                size='sm'
+                className='flex-1 cursor-pointer'
+                onClick={() => navigate(`/alerts?barangay=${id}`)}
+            >
+                <History className='size-4' />
+                Alert history
+            </Button>
+        </div>
+    )
+}
+
 const PanelBody = ({ data }: { data: BarangayRisk }) => (
     <>
         <HazardHero data={data} />
+        <Actions id={data.id} name={data.name} />
         <Conditions data={data} />
         {data.breakdown && <Breakdown breakdown={data.breakdown} />}
         <RainfallTrend data={data} />

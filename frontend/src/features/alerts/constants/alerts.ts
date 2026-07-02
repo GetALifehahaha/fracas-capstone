@@ -1,4 +1,4 @@
-import type { AlertEventKind } from '../types/api'
+import type { AlertEventKind, AlertEventSource } from '../types/api'
 
 /** Human labels for each transition kind (audit-log "Event" column). */
 export const KIND_LABELS: Record<AlertEventKind, string> = {
@@ -6,6 +6,12 @@ export const KIND_LABELS: Record<AlertEventKind, string> = {
     renotify: 'Re-alert',
     all_clear: 'All clear',
     broadcast: 'Broadcast',
+}
+
+/** Human labels for the event source. */
+export const SOURCE_LABELS: Record<AlertEventSource, string> = {
+    automated: 'Automated',
+    operator: 'Operator',
 }
 
 /** Filter options for the log, in a sensible reading order. */
