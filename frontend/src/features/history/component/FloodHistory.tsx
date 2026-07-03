@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Plus } from 'lucide-react'
+import { useAuth } from '@/features/auth/context/useAuth'
 import {
     Table,
     TableBody,
@@ -34,6 +35,7 @@ import { getPageItems } from '@/common/utils/pageItems'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useFloodEvents } from '../hooks/useFloodEvents'
 import { SEVERITY_COLORS, SEVERITY_LABELS, SEVERITY_FILTERS } from '../constants/floodEvents'
+import FloodEventForm from './FloodEventForm'
 import type { FloodSeverity } from '../types/api'
 
 const PAGE_SIZE = 25
@@ -51,6 +53,7 @@ const SeverityCell = ({ severity }: { severity: FloodSeverity }) => (
 
 const FloodHistory = () => {
     const navigate = useNavigate()
+    const { isOperator } = useAuth()
     const [severity, setSeverity] = useState<FloodSeverity | 'all'>('all')
     const [page, setPage] = useState(1)
 
@@ -111,6 +114,16 @@ const FloodHistory = () => {
                         Recorded flood events and their response.
                     </p>
                 </div>
+                {isOperator && (
+                    <FloodEventForm
+                        trigger={
+                            <Button size='sm' className='cursor-pointer'>
+                                <Plus className='size-4' />
+                                New event
+                            </Button>
+                        }
+                    />
+                )}
             </div>
 
             <Card size='sm' className='flex flex-row items-center gap-2 my-4'>

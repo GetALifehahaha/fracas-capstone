@@ -80,3 +80,25 @@ export interface FloodEventFilters {
     severity?: FloodSeverity
     page?: number
 }
+
+/** One timeline row in a write payload. */
+export interface FloodTimelineInput {
+    occurred_at: string
+    title: string
+    description?: string
+}
+
+/** POST/PATCH body for creating or editing a flood event (mirrors the write serializer). */
+export interface FloodEventInput {
+    barangay: number
+    occurred_at: string
+    ended_at?: string | null
+    severity: FloodSeverity
+    water_depth_m?: number | null
+    summary?: string
+    people_affected?: number | null
+    people_evacuated?: number | null
+    source?: string
+    notes?: string
+    timeline: FloodTimelineInput[]
+}

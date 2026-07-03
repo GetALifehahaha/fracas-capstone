@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
 import NotFound from '@/common/pages/NotFound'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
@@ -8,7 +8,10 @@ import { Card, CardContent, CardTitle } from '@/common/ui/card'
 import { Map } from '@/common/ui/map'
 import { Separator } from '@/common/ui/separator'
 import { CATEGORY_LABELS } from '@/features/gis/constants/risk'
+import { useAuth } from '@/features/auth/context/useAuth'
 import { useFloodEvent } from '../hooks/useFloodEvent'
+import { useDeleteFloodEvent } from '../hooks/useDeleteFloodEvent'
+import FloodEventForm from './FloodEventForm'
 import { SEVERITY_COLORS, SEVERITY_LABELS } from '../constants/floodEvents'
 
 /** Small labelled stat card, matching the dashboard's summary tiles. */
@@ -23,9 +26,16 @@ const Stat = ({ label, value, sub }: { label: string; value: string; sub?: strin
 const FloodEventDetail = () => {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { isOperator } = useAuth()
+    const del = useDeleteFloodEvent()
 
     const numericId = id ? Number(id) : undefined
     const { data: event, isLoading, isError } = useFloodEvent(numericId)
+
+    const handleDelete = () => {
+        if (!event || !window.confirm('Delete this flood event? This cannot be undone.')) return
+        del.mutate(event.id, { onSuccess: () => navigate('/history') })
+    }
 
     if (!id || Number.isNaN(numericId)) return <NotFound />
 
@@ -57,6 +67,29 @@ const FloodEventDetail = () => {
                 >
                     {SEVERITY_LABELS[event.severity]}
                 </Badge>
+                {isOperator && (
+                    <div className='ml-auto flex gap-2'>
+                        <FloodEventForm
+                            event={event}
+                            trigger={
+                                <Button size='sm' variant='outline' className='cursor-pointer'>
+                                    <Pencil className='size-4' />
+                                    Edit
+                                </Button>
+                            }
+                        />
+                        <Button
+                            size='sm'
+                            variant='outline'
+                            className='cursor-pointer text-destructive'
+                            disabled={del.isPending}
+                            onClick={handleDelete}
+                        >
+                            <Trash2 className='size-4' />
+                            Delete
+                        </Button>
+                    </div>
+                )}
             </div>
             <p className='text-xs text-black/50'>
                 {format(occurred, 'LLLL d, y')} · Event ID #{event.id}
