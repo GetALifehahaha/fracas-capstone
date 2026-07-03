@@ -3,6 +3,21 @@ import type { RiskCategory } from '@/features/gis/types/api'
 /** Recorded severity of a flood event (mirrors backend FloodSeverity). */
 export type FloodSeverity = 'minor' | 'moderate' | 'major'
 
+/** How the event entered the system (mirrors backend SourceKind). */
+export type FloodSourceKind = 'manual' | 'auto'
+
+/** Who reported the event (mirrors backend SourceType). */
+export type FloodSourceType = 'operator' | 'third_party'
+
+/** Lean operator shape for the source picker (GET /api/operators/). */
+export interface Operator {
+    id: number
+    name: string
+}
+
+/** Risk category an operator can require before auto-detection drafts an event. */
+export type RiskThreshold = 'medium' | 'high' | 'critical'
+
 /** DRF page envelope. */
 export interface Paginated<T> {
     count: number
@@ -17,10 +32,17 @@ export interface FloodEvent {
     barangay: number
     barangay_name: string
     occurred_at: string
+    ended_at: string | null
     severity: FloodSeverity
     water_depth_m: number | null
     source: string
+    source_type: FloodSourceType
+    reported_by_name: string | null
     notes: string
+    source_kind: FloodSourceKind
+    is_confirmed: boolean
+    confirmed_by_name: string | null
+    is_resolved: boolean
 }
 
 /** One step in an event's response timeline. */
@@ -65,19 +87,51 @@ export interface FloodTelemetry {
 
 /** GET /api/flood-events/:id/ (mirrors FloodEventDetailSerializer). */
 export interface FloodEventDetail extends FloodEvent {
-    ended_at: string | null
     duration_hours: number | null
     summary: string
     people_affected: number | null
     people_evacuated: number | null
+    reported_by: number | null
+    confirmed_at: string | null
+    deleted_at: string | null
     timeline: FloodTimelineEntry[]
     telemetry: FloodTelemetry
+}
+
+/** One audit-trail row from GET /api/flood-events/:id/changes/. */
+export type FloodChangeAction =
+    | 'created'
+    | 'updated'
+    | 'confirmed'
+    | 'resolved'
+    | 'deleted'
+    | 'restored'
+
+export interface FloodEventChange {
+    id: number
+    editor_name: string | null
+    action: FloodChangeAction
+    field: string
+    old_value: string
+    new_value: string
+    changed_at: string
+}
+
+/** Admin-tunable auto-detection settings (mirrors AutoDetectConfigSerializer). */
+export interface AutoDetectConfig {
+    enabled: boolean
+    threshold_category: RiskThreshold
+    updated_at: string
 }
 
 /** Server-side filters for the list. `page` drives DRF pagination. */
 export interface FloodEventFilters {
     barangay?: number
     severity?: FloodSeverity
+    /** Inclusive ISO date (YYYY-MM-DD) lower bound on occurred_at. */
+    occurred_after?: string
+    /** Inclusive ISO date (YYYY-MM-DD) upper bound on occurred_at. */
+    occurred_before?: string
     page?: number
 }
 
@@ -99,6 +153,8 @@ export interface FloodEventInput {
     people_affected?: number | null
     people_evacuated?: number | null
     source?: string
+    source_type: FloodSourceType
+    reported_by?: number | null
     notes?: string
     timeline: FloodTimelineInput[]
 }

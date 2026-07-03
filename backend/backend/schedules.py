@@ -18,4 +18,9 @@ BEAT_SCHEDULE = {
         "task": "monitoring.tasks.cleanup_old_data",
         "schedule": crontab(hour=3, minute=0),
     },
+    "purge-soft-deleted-flood-events-hourly": {
+        # Hard-delete flood events soft-deleted past their 6h undo window.
+        "task": "flood_events.tasks.purge_deleted_flood_events",
+        "schedule": crontab(minute=0),
+    },
 }

@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .api_views import (
     DeviceViewSet,
     NotificationPreferenceView,
+    OperatorListView,
     RequestPhoneOTPView,
     SubscriptionViewSet,
     VerifyPhoneOTPView,
@@ -17,4 +18,5 @@ urlpatterns = [
     path("account/phone/otp/request/", RequestPhoneOTPView.as_view(), name="phone-otp-request"),
     path("account/phone/otp/verify/", VerifyPhoneOTPView.as_view(), name="phone-otp-verify"),
     path("account/preferences/", NotificationPreferenceView.as_view(), name="notification-preferences"),
+    path("operators/", OperatorListView.as_view(), name="operator-list"),
 ] + router.urls

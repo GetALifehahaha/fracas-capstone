@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, CheckCircle2, Pencil } from 'lucide-react'
 import NotFound from '@/common/pages/NotFound'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
@@ -10,9 +10,18 @@ import { Separator } from '@/common/ui/separator'
 import { CATEGORY_LABELS } from '@/features/gis/constants/risk'
 import { useAuth } from '@/features/auth/context/useAuth'
 import { useFloodEvent } from '../hooks/useFloodEvent'
-import { useDeleteFloodEvent } from '../hooks/useDeleteFloodEvent'
+import { useConfirmFloodEvent } from '../hooks/useFloodEventActions'
 import FloodEventForm from './FloodEventForm'
-import { SEVERITY_COLORS, SEVERITY_LABELS } from '../constants/floodEvents'
+import ChangeHistoryModal from './ChangeHistoryModal'
+import DeleteEventDialog from './DeleteEventDialog'
+import ResolveDialog from './ResolveDialog'
+import {
+    SEVERITY_COLORS,
+    SEVERITY_LABELS,
+    SOURCE_KIND_LABELS,
+    SOURCE_TYPE_LABELS,
+} from '../constants/floodEvents'
+import type { FloodEventDetail as FloodEventDetailType } from '../types/api'
 
 /** Small labelled stat card, matching the dashboard's summary tiles. */
 const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
@@ -23,19 +32,100 @@ const Stat = ({ label, value, sub }: { label: string; value: string; sub?: strin
     </Card>
 )
 
+/** Duration tile, or — when unresolved — a quick-resolve affordance for operators. */
+const DurationCard = ({
+    event,
+    isOperator,
+}: {
+    event: FloodEventDetailType
+    isOperator: boolean
+}) => {
+    const occurred = new Date(event.occurred_at)
+
+    if (event.is_resolved) {
+        return (
+            <Stat
+                label='Duration'
+                value={event.duration_hours != null ? `${event.duration_hours.toFixed(1)} hours` : '—'}
+                sub={
+                    event.ended_at
+                        ? `${format(occurred, 'HH:mm')} – ${format(new Date(event.ended_at), 'HH:mm')}`
+                        : 'Recession time not recorded'
+                }
+            />
+        )
+    }
+
+    return (
+        <Card size='sm' className='justify-between border-amber-500/30 bg-amber-50/40'>
+            <div>
+                <h5 className='text-xs font-semibold uppercase text-black/50'>Duration</h5>
+                <h1 className='text-lg font-semibold text-amber-700'>Ongoing</h1>
+                <p className='text-xs text-black/50'>Recession time not recorded</p>
+            </div>
+            {isOperator && (
+                <ResolveDialog
+                    eventId={event.id}
+                    occurredAt={event.occurred_at}
+                    trigger={
+                        <Button size='xs' variant='outline' className='mt-2 cursor-pointer'>
+                            <CheckCircle2 className='size-3.5' />
+                            Resolve
+                        </Button>
+                    }
+                />
+            )}
+        </Card>
+    )
+}
+
+/** Confirmation status pill; unconfirmed auto-drafts get a Confirm action for operators. */
+const ConfirmationBadge = ({
+    event,
+    isOperator,
+}: {
+    event: FloodEventDetailType
+    isOperator: boolean
+}) => {
+    const confirm = useConfirmFloodEvent()
+
+    if (event.is_confirmed) {
+        return (
+            <Badge variant='outline' className='gap-1 border-emerald-500/40 text-emerald-600'>
+                <BadgeCheck className='size-3.5' />
+                {event.confirmed_by_name ? `Confirmed by ${event.confirmed_by_name}` : 'Confirmed'}
+            </Badge>
+        )
+    }
+
+    return (
+        <span className='flex items-center gap-2'>
+            <Badge variant='outline' className='border-amber-500/40 text-amber-600'>
+                Unconfirmed · {SOURCE_KIND_LABELS[event.source_kind]}
+            </Badge>
+            {isOperator && (
+                <Button
+                    size='xs'
+                    variant='outline'
+                    className='cursor-pointer'
+                    disabled={confirm.isPending}
+                    onClick={() => confirm.mutate(event.id)}
+                >
+                    <BadgeCheck className='size-3.5' />
+                    {confirm.isPending ? 'Confirming…' : 'Confirm'}
+                </Button>
+            )}
+        </span>
+    )
+}
+
 const FloodEventDetail = () => {
     const { id } = useParams()
     const navigate = useNavigate()
     const { isOperator } = useAuth()
-    const del = useDeleteFloodEvent()
 
     const numericId = id ? Number(id) : undefined
     const { data: event, isLoading, isError } = useFloodEvent(numericId)
-
-    const handleDelete = () => {
-        if (!event || !window.confirm('Delete this flood event? This cannot be undone.')) return
-        del.mutate(event.id, { onSuccess: () => navigate('/history') })
-    }
 
     if (!id || Number.isNaN(numericId)) return <NotFound />
 
@@ -57,7 +147,7 @@ const FloodEventDetail = () => {
                 Back to Flood History
             </Button>
 
-            <div className='flex gap-4 items-center'>
+            <div className='flex flex-wrap gap-4 items-center'>
                 <h1 className='text-2xl font-semibold'>
                     Flood History: Barangay {event.barangay_name}
                 </h1>
@@ -67,8 +157,10 @@ const FloodEventDetail = () => {
                 >
                     {SEVERITY_LABELS[event.severity]}
                 </Badge>
+                <ConfirmationBadge event={event} isOperator={isOperator} />
                 {isOperator && (
                     <div className='ml-auto flex gap-2'>
+                        <ChangeHistoryModal eventId={event.id} />
                         <FloodEventForm
                             event={event}
                             trigger={
@@ -78,21 +170,24 @@ const FloodEventDetail = () => {
                                 </Button>
                             }
                         />
-                        <Button
-                            size='sm'
-                            variant='outline'
-                            className='cursor-pointer text-destructive'
-                            disabled={del.isPending}
-                            onClick={handleDelete}
-                        >
-                            <Trash2 className='size-4' />
-                            Delete
-                        </Button>
+                        <DeleteEventDialog
+                            eventId={event.id}
+                            barangayName={event.barangay_name}
+                            onDeleted={(deletedId) => navigate(`/history?undo=${deletedId}`)}
+                        />
                     </div>
                 )}
             </div>
             <p className='text-xs text-black/50'>
-                {format(occurred, 'LLLL d, y')} · Event ID #{event.id}
+                {format(occurred, 'LLLL d, y')} · Event ID #{event.id} ·{' '}
+                {SOURCE_TYPE_LABELS[event.source_type]}
+                {event.source_type === 'operator'
+                    ? event.reported_by_name
+                        ? ` — ${event.reported_by_name}`
+                        : ''
+                    : event.source
+                        ? ` — ${event.source}`
+                        : ''}
             </p>
 
             <div className='grid grid-flow-col gap-2 my-4 w-full'>
@@ -101,18 +196,10 @@ const FloodEventDetail = () => {
                     value={format(occurred, 'LLL dd, y')}
                     sub={`${format(occurred, 'HH:mm')} onset`}
                 />
+                <DurationCard event={event} isOperator={isOperator} />
                 <Stat
-                    label='Duration'
-                    value={event.duration_hours != null ? `${event.duration_hours.toFixed(1)} hours` : dash}
-                    sub={
-                        event.ended_at
-                            ? `${format(occurred, 'HH:mm')} – ${format(new Date(event.ended_at), 'HH:mm')}`
-                            : 'Recession time not recorded'
-                    }
-                />
-                <Stat
-                    label='Water Depth'
-                    value={event.water_depth_m != null ? `${event.water_depth_m} m` : dash}
+                    label='Flood Depth'
+                    value={event.water_depth_m != null ? `${event.water_depth_m} ft` : dash}
                 />
                 <Stat
                     label='Peak Rainfall'

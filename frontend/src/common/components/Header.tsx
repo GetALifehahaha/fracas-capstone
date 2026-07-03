@@ -28,7 +28,7 @@ const Avatar = ({name}: {name: string}) => {
 
 const Header = () => {
 
-    const { isOperator } = useAuth()
+    const { isOperator, isAdmin } = useAuth()
 
     const dummyUser = {
         first_name: "Ahlan-nour",
@@ -40,6 +40,8 @@ const Header = () => {
         {name: "Flood History", link: "/history"},
         // Operator-only console; residents never see it.
         ...(isOperator ? [{name: "Alerts", link: "/alerts"}] : []),
+        // Admin-only auto-detection settings.
+        ...(isAdmin ? [{name: "Auto-detect", link: "/admin/auto-detect"}] : []),
     ]
 
     const linkList = links.map(({name, link}) =>

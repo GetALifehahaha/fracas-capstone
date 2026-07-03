@@ -1,6 +1,19 @@
 from rest_framework import serializers
 
-from .models import Device, NotificationPreference, Subscription
+from .models import Device, NotificationPreference, Subscription, User
+
+
+class OperatorSerializer(serializers.ModelSerializer):
+    """Lean {id, name} shape for operator pickers (no PII beyond a display name)."""
+
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id", "name"]
+
+    def get_name(self, user) -> str:
+        return user.get_full_name() or user.get_username()
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):

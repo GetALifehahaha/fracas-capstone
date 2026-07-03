@@ -1,20 +1,39 @@
 """Authenticated account API: phone verification, subscriptions, devices, prefs."""
 
+from django.db.models import Q
 from rest_framework import mixins
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
 from alert.senders import SendError
 
-from .models import Device, NotificationPreference, Subscription
+from .models import Device, NotificationPreference, Subscription, User
+from .permissions import IsOperator
 from .serializers import (
     DeviceSerializer,
     NotificationPreferenceSerializer,
+    OperatorSerializer,
     SubscriptionSerializer,
 )
 from .services.otp import OTPError, generate_and_send, verify
+
+
+class OperatorListView(ListAPIView):
+    """Operators + admins as {id, name}, for the flood-report source picker.
+
+    Unpaginated — the client filters this small list in-memory.
+    """
+
+    serializer_class = OperatorSerializer
+    permission_classes = [IsOperator]
+    pagination_class = None
+
+    def get_queryset(self):
+        return User.objects.filter(
+            Q(is_operator=True) | Q(is_staff=True) | Q(is_superuser=True)
+        ).order_by("first_name", "last_name", "username")
 
 
 class RequestPhoneOTPView(APIView):

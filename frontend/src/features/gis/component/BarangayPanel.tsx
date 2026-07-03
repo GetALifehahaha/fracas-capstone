@@ -1,5 +1,5 @@
-import { AlertTriangle, History, RotateCw, X, XIcon } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { AlertTriangle, ChevronRight, History, RotateCw, Waves, X, XIcon } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
@@ -7,6 +7,8 @@ import { Progress } from '@/common/ui/progress'
 import { Badge } from '@/common/ui/badge'
 import { useAuth } from '@/features/auth/context/useAuth'
 import QuickAlertDialog from '@/features/alerts/component/QuickAlertDialog'
+import { useRecentFloods } from '@/features/history/hooks/useRecentFloods'
+import { SEVERITY_COLORS, SEVERITY_LABELS } from '@/features/history/constants/floodEvents'
 import {
     ChartContainer,
     ChartTooltip,
@@ -234,6 +236,47 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
+/** The barangay's recent flood record (past 7 days, up to 3), newest first. */
+const RecentFloods = ({ id }: { id: number }) => {
+    const navigate = useNavigate()
+    const { data, isLoading } = useRecentFloods(id, 7)
+    const floods = (data?.results ?? []).slice(0, 3)
+
+    if (isLoading || floods.length === 0) return null
+
+    return (
+        <Card className='gap-2'>
+            <div className='flex items-center gap-1.5'>
+                <Waves className='text-muted-foreground size-4' />
+                <Label className='font-medium'>Recent floods</Label>
+                <span className='text-muted-foreground text-xs'>past 7 days</span>
+            </div>
+            <div className='flex flex-col gap-1'>
+                {floods.map((flood) => (
+                    <button
+                        key={flood.id}
+                        type='button'
+                        onClick={() => navigate(`/history/${flood.id}`)}
+                        className='hover:bg-muted flex items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors'
+                    >
+                        <span className='flex items-center gap-2 text-sm'>
+                            <span
+                                className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
+                                style={{ backgroundColor: SEVERITY_COLORS[flood.severity] }}
+                            />
+                            {format(new Date(flood.occurred_at), 'LLL d, HH:mm')}
+                            <span className='text-muted-foreground'>
+                                {SEVERITY_LABELS[flood.severity]}
+                            </span>
+                        </span>
+                        <ChevronRight className='text-muted-foreground size-4' />
+                    </button>
+                ))}
+            </div>
+        </Card>
+    )
+}
+
 /** Operator-only actions for the selected barangay: broadcast + audit history. */
 const Actions = ({ id, name }: { id: number; name: string }) => {
     const { isOperator } = useAuth()
@@ -262,6 +305,7 @@ const PanelBody = ({ data }: { data: BarangayRisk }) => (
         <HazardHero data={data} />
         <Actions id={data.id} name={data.name} />
         <Conditions data={data} />
+        <RecentFloods id={data.id} />
         {data.breakdown && <Breakdown breakdown={data.breakdown} />}
         <RainfallTrend data={data} />
 

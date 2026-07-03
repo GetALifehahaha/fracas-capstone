@@ -4,4 +4,6 @@ import type { FloodEventFilters } from '../types/api'
 export const floodEventKeys = {
     list: (filters: FloodEventFilters) => ['floodEvents', 'list', filters] as const,
     detail: (id: number) => ['floodEvents', 'detail', id] as const,
+    changes: (id: number) => ['floodEvents', 'changes', id] as const,
+    autoDetectConfig: () => ['floodEvents', 'autoDetectConfig'] as const,
 }

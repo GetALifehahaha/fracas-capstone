@@ -90,11 +90,40 @@ class FloodEventWriteApiTests(APITestCase):
         resp = self.client.delete(reverse("flood-event-detail", args=[event.id]))
         self.assertEqual(resp.status_code, 403)
 
-    def test_operator_deletes(self):
+    def test_operator_soft_deletes(self):
         event = FloodEvent.objects.create(
             barangay=self.barangay, occurred_at=self.now, severity="minor"
         )
         self.client.force_authenticate(self.operator)
         resp = self.client.delete(reverse("flood-event-detail", args=[event.id]))
         self.assertEqual(resp.status_code, 204)
-        self.assertEqual(FloodEvent.objects.count(), 0)
+        # Soft delete: row survives (undo window) but is hidden from live reads.
+        event.refresh_from_db()
+        self.assertIsNotNone(event.deleted_at)
+        self.assertEqual(FloodEvent.objects.count(), 1)
+        list_resp = self.client.get(reverse("flood-event-list"))
+        self.assertEqual(list_resp.data["count"], 0)
+
+    def test_operator_source_requires_reported_by(self):
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(
+            reverse("flood-event-list"),
+            self._payload(source_type="operator"),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("reported_by", resp.data)
+
+    def test_operator_source_records_reporter(self):
+        self.client.force_authenticate(self.operator)
+        resp = self.client.post(
+            reverse("flood-event-list"),
+            self._payload(source_type="operator", reported_by=self.operator.id),
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        event = FloodEvent.objects.get()
+        self.assertEqual(event.source_type, "operator")
+        self.assertEqual(event.reported_by, self.operator)
+        detail = self.client.get(reverse("flood-event-detail", args=[event.id]))
+        self.assertEqual(detail.data["reported_by_name"], self.operator.get_username())

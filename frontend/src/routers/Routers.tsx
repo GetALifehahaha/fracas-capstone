@@ -6,10 +6,12 @@ import ProtectedRoute from './ProtectedRoute'
 import Login from '@/features/auth/Login'
 import FloodHistory from '@/features/history/component/FloodHistory'
 import FloodEventDetail from '@/features/history/component/FloodEventDetail'
+import AutoDetectAdmin from '@/features/history/component/AutoDetectAdmin'
 import NotFound from '@/common/pages/NotFound'
 import AccountPage from '@/features/user/AccountPage'
 import AlertsPage from '@/features/alerts/AlertsPage'
 import OperatorRoute from './OperatorRoute'
+import AdminRoute from './AdminRoute'
 
 
 const Routers = () => {
@@ -24,6 +26,10 @@ const Routers = () => {
         <Route path='/history/:id' element={<FloodEventDetail />} />
         <Route path='/me' element={<AccountPage />} />
         <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
+        <Route
+          path='/admin/auto-detect'
+          element={<AdminRoute><AutoDetectAdmin /></AdminRoute>}
+        />
       </Route>
       <Route path='*' element={<NotFound />} />
     </Routes>

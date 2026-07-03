@@ -99,6 +99,27 @@ def run_validation_task(run_id: int) -> dict:
 
 
 @shared_task
+def draft_auto_flood_events() -> dict:
+    """Draft unconfirmed flood events for barangays over the auto-detect threshold.
+
+    Reads the just-computed cycle's scores and hands them to flood_events, which
+    owns the drafting rules. One-way dependency (risk_score -> flood_events) so
+    flood_events stays free of risk_score imports.
+    """
+    from flood_events.services.auto_detect import draft_events
+
+    latest = (
+        RiskScore.objects.order_by("-computed_at")
+        .values_list("computed_at", flat=True)
+        .first()
+    )
+    if latest is None:
+        return {"created": 0}
+    scores = RiskScore.objects.filter(computed_at=latest).select_related("barangay")
+    return draft_events(scores)
+
+
+@shared_task
 def run_scoring_pipeline():
     """Ingest dam + rainfall, then compute scores on the fresh data.
 
@@ -110,5 +131,6 @@ def run_scoring_pipeline():
         ingest_dam_level.si(),
         fetch_rainfall_information.si(),
         compute_risk_scores.si(),
+        draft_auto_flood_events.si(),
         evaluate_alerts.si(),
     )()
