@@ -40,3 +40,21 @@ class LoadFloodEventsTests(TestCase):
         self.assertEqual(event.barangay.name, "Tumaga")
         self.assertEqual(event.severity, "major")
         self.assertEqual(event.water_depth_m, 1.2)
+
+    def test_imports_optional_report_columns(self):
+        csv = (
+            "barangay,occurred_at,ended_at,summary,people_affected,people_evacuated\n"
+            "Tumaga,2024-07-15T14:00,2024-07-15T20:00,River overflow,340,120\n"
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as fh:
+            fh.write(csv)
+            path = fh.name
+
+        call_command("load_flood_events", path)
+
+        event = FloodEvent.objects.get()
+        self.assertIsNotNone(event.ended_at)
+        self.assertEqual(event.duration_hours, 6.0)
+        self.assertEqual(event.summary, "River overflow")
+        self.assertEqual(event.people_affected, 340)
+        self.assertEqual(event.people_evacuated, 120)
