@@ -2,7 +2,6 @@ import type {
     FloodSeverity,
     FloodSourceKind,
     FloodSourceType,
-    RiskThreshold,
 } from '../types/api'
 
 /** How an event entered the system. */
@@ -16,13 +15,6 @@ export const SOURCE_TYPE_LABELS: Record<FloodSourceType, string> = {
     operator: 'Operator',
     third_party: '3rd-party report',
 }
-
-/** Risk categories an admin can require before auto-detection drafts an event. */
-export const THRESHOLD_OPTIONS: { value: RiskThreshold; label: string }[] = [
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'critical', label: 'Critical' },
-]
 
 /** Human labels for each severity level. */
 export const SEVERITY_LABELS: Record<FloodSeverity, string> = {

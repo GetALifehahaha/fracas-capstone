@@ -15,9 +15,6 @@ export interface Operator {
     name: string
 }
 
-/** Risk category an operator can require before auto-detection drafts an event. */
-export type RiskThreshold = 'medium' | 'high' | 'critical'
-
 /** DRF page envelope. */
 export interface Paginated<T> {
     count: number
@@ -115,13 +112,6 @@ export interface FloodEventChange {
     old_value: string
     new_value: string
     changed_at: string
-}
-
-/** Admin-tunable auto-detection settings (mirrors AutoDetectConfigSerializer). */
-export interface AutoDetectConfig {
-    enabled: boolean
-    threshold_category: RiskThreshold
-    updated_at: string
 }
 
 /** Server-side filters for the list. `page` drives DRF pagination. */

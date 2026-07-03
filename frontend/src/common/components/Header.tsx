@@ -2,6 +2,7 @@ import { ButtonGroup } from '../ui/button-group'
 import { Button } from '../ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/context/useAuth'
+import { useCurrentUser } from '@/features/user/hooks/useCurrentUser'
 
 
 
@@ -28,20 +29,19 @@ const Avatar = ({name}: {name: string}) => {
 
 const Header = () => {
 
-    const { isOperator, isAdmin } = useAuth()
+    const { isOperator } = useAuth()
+    const { data: user } = useCurrentUser()
 
-    const dummyUser = {
-        first_name: "Ahlan-nour",
-        last_name: "Sencio"
-    }
+    // Fall back to a neutral label until the profile query resolves.
+    const displayName = user
+        ? `${user.first_name} ${user.last_name}`.trim() || user.username
+        : '…'
 
     const links = [
         {name: "Dashboard", link: "/"},
         {name: "Flood History", link: "/history"},
         // Operator-only console; residents never see it.
         ...(isOperator ? [{name: "Alerts", link: "/alerts"}] : []),
-        // Admin-only auto-detection settings.
-        ...(isAdmin ? [{name: "Auto-detect", link: "/admin/auto-detect"}] : []),
     ]
 
     const linkList = links.map(({name, link}) =>
@@ -58,7 +58,7 @@ const Header = () => {
             <ButtonGroup className='bg-white rounded-2xl ml-auto mr-8'>
                 {linkList}
             </ButtonGroup>
-            <Avatar name={`${dummyUser.first_name} ${dummyUser.last_name}`} />
+            <Avatar name={displayName} />
         </div>
     )
 }

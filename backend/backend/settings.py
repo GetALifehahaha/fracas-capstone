@@ -58,6 +58,15 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
+# Djoser: expose the console profile (name/email + derived role) on
+# `/api/auth/users/me/`; password change stays on djoser's `set_password`.
+DJOSER = {
+    "SERIALIZERS": {
+        "current_user": "users.serializers.CurrentUserSerializer",
+        "user": "users.serializers.CurrentUserSerializer",
+    },
+}
+
 
 
 # Application definition

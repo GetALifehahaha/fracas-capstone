@@ -24,7 +24,7 @@ const UserInformationCard = ({
 
             <Card className='flex items-center w-full'>
                 <h2 className='text-xl font-semibold'>{first_name} {last_name}</h2>
-                <RoleBadge role={role} />
+                {/* <RoleBadge role={role} /> */}
                 <UserActiveBadge isActive={is_active} />
             </Card>
         </div>

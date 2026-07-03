@@ -1,6 +1,5 @@
 import apiClient from '@/app/apiClient'
 import type {
-    AutoDetectConfig,
     FloodEvent,
     FloodEventChange,
     FloodEventDetail,
@@ -78,22 +77,5 @@ export const resolveFloodEvent = async (
 /** Undo a soft-delete within the recovery window. */
 export const restoreFloodEvent = async (id: number): Promise<FloodEventDetail> => {
     const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/restore/`)
-    return data
-}
-
-/** Read the auto-detection config singleton (admin-only). */
-export const getAutoDetectConfig = async (): Promise<AutoDetectConfig> => {
-    const { data } = await apiClient.get<AutoDetectConfig>('/api/flood-events/auto-detect-config/')
-    return data
-}
-
-/** Update the auto-detection config (admin-only). */
-export const updateAutoDetectConfig = async (
-    payload: Partial<Pick<AutoDetectConfig, 'enabled' | 'threshold_category'>>,
-): Promise<AutoDetectConfig> => {
-    const { data } = await apiClient.patch<AutoDetectConfig>(
-        '/api/flood-events/auto-detect-config/',
-        payload,
-    )
     return data
 }
