@@ -1,15 +1,26 @@
-FROM node:20-alpine
-
+# ---- build stage: produce the static production bundle -------------------
+FROM node:20-alpine AS build
 WORKDIR /frontend
-
 COPY package.json package-lock.json ./
-
 RUN npm ci
-
 COPY . .
+RUN npm run build
 
-# `npm ci` above bakes a reproducible install into the image. At runtime a
-# named volume shadows /frontend/node_modules, so run `npm install` first to
-# reconcile that volume with the current lockfile (installs only the delta,
-# no-op when already in sync) before starting the dev server.
+# ---- dev stage (default): Vite dev server with HMR -----------------------
+# `docker compose up` targets this so local frontend edits stay live. A named
+# volume shadows /frontend/node_modules at runtime, so reconcile it against the
+# lockfile (installs only the delta, no-op when in sync) before starting Vite.
+FROM node:20-alpine AS dev
+WORKDIR /frontend
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
 CMD ["sh", "-c", "npm install && npm run dev -- --host"]
+
+# ---- production stage: serve the built bundle as static files ------------
+# Listens on 5173 (same port as the dev server) so the fronting nginx proxies
+# `/` to frontend:5173 unchanged in both modes.
+FROM nginx:1.25-alpine AS production
+COPY --from=build /frontend/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 5173

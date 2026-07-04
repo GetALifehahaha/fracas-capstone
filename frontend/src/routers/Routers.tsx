@@ -1,32 +1,39 @@
-import {Routes, Route} from 'react-router-dom'
-import TestAuth from '@/common/test/TestAuth'
+import { lazy, Suspense } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import Layout from '@/layout/Layout'
-import Dashboard from '@/features/gis/Dashboard'
 import ProtectedRoute from './ProtectedRoute'
-import Login from '@/features/auth/Login'
-import FloodHistory from '@/features/history/component/FloodHistory'
-import FloodEventDetail from '@/features/history/component/FloodEventDetail'
-import NotFound from '@/common/pages/NotFound'
-import AccountPage from '@/features/user/AccountPage'
-import AlertsPage from '@/features/alerts/AlertsPage'
 import OperatorRoute from './OperatorRoute'
+import Login from '@/features/auth/Login'
+import RouteFallback from '@/common/components/RouteFallback'
 
+// Heavy, route-only screens are code-split so their bundles (MapLibre on the
+// dashboard, Recharts on history) load on navigation instead of up front.
+// Login + the small guard/layout wrappers stay eager for a fast first paint.
+const Dashboard = lazy(() => import('@/features/gis/Dashboard'))
+const FloodHistory = lazy(() => import('@/features/history/component/FloodHistory'))
+const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
+const AccountPage = lazy(() => import('@/features/user/AccountPage'))
+const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'))
+const TestAuth = lazy(() => import('@/common/test/TestAuth'))
+const NotFound = lazy(() => import('@/common/pages/NotFound'))
 
 const Routers = () => {
   return (
-    <Routes>
-      <Route path='/test-auth' element={<TestAuth />} />
-      <Route path='/login' element={<Login />} />
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path='/test-auth' element={<TestAuth />} />
+        <Route path='/login' element={<Login />} />
 
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route path='/' element={<Dashboard />} />
-        <Route path='/history' element={<FloodHistory />} />
-        <Route path='/history/:id' element={<FloodEventDetail />} />
-        <Route path='/me' element={<AccountPage />} />
-        <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
-      </Route>
-      <Route path='*' element={<NotFound />} />
-    </Routes>
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path='/' element={<Dashboard />} />
+          <Route path='/history' element={<FloodHistory />} />
+          <Route path='/history/:id' element={<FloodEventDetail />} />
+          <Route path='/me' element={<AccountPage />} />
+          <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
+        </Route>
+        <Route path='*' element={<NotFound />} />
+      </Routes>
+    </Suspense>
   )
 }
 

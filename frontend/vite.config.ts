@@ -14,6 +14,22 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the two heaviest libraries into their own long-lived chunks so
+        // they cache independently of app code and never bloat the entry bundle.
+        // recharts drags in the d3-* family, so group them together.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('maplibre-gl')) return 'maplibre'
+            if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor'))
+              return 'charts'
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     host: true,
