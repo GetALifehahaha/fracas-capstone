@@ -33,7 +33,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow FRACAS to detect which barangay you're in and find the nearest evacuation center."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

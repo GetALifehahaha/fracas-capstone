@@ -8,6 +8,9 @@
     "@tanstack/query-async-storage-persister": "^5.101.2",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-query-persist-client": "^5.101.2",
+    "@turf/boolean-point-in-polygon": "^7.3.5",
+    "@turf/distance": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "axios": "^1.18.1",
     "expo": "^57.0.2",
     "expo-constants": "~57.0.3",
@@ -16,6 +19,7 @@
     "expo-glass-effect": "~57.0.0",
     "expo-image": "~57.0.0",
     "expo-linking": "~57.0.1",
+    "expo-location": "~57.0.2",
     "expo-router": "~57.0.3",
     "expo-secure-store": "~57.0.0",
     "expo-splash-screen": "^57.0.2",
@@ -35,7 +39,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.16",
     "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.0",
     "typescript": "~6.0.3"
   },
   "scripts": {

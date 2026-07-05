@@ -6,10 +6,20 @@ import axios from 'axios'
 
 import { API_BASE_URL } from '@/core/config'
 import type { TokenPair } from '@/features/auth/types/authTypes'
+import type { PublicBarangayCollection } from '@/features/gis/types'
 
 import type { RegistrationAddress } from '../types'
 
 const CONFIG = { headers: { 'X-Client': 'mobile' } }
+
+/** Public barangay boundaries (geometry + name) for pre-auth point-in-polygon. */
+export async function getPublicBarangays(): Promise<PublicBarangayCollection> {
+    const { data } = await axios.get<PublicBarangayCollection>(
+        `${API_BASE_URL}/api/barangays/public/`,
+        CONFIG,
+    )
+    return data
+}
 
 /** Phase 1 — create the pending account and send an OTP. */
 export async function registerStart(

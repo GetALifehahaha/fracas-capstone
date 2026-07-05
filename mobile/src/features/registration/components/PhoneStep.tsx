@@ -5,6 +5,7 @@ import { spacing } from '@/common/theme'
 import { Button, Field, Text } from '@/common/ui'
 import { useZodForm } from '@/common/hooks/useZodForm'
 
+import { AddressPicker } from './AddressPicker'
 import { phoneSchema } from '../schemas'
 import type { RegistrationAddress } from '../types'
 
@@ -14,14 +15,15 @@ interface Props {
     onSubmit: (phone: string, address: RegistrationAddress) => void
 }
 
-/** Phase 1 — phone number. (Address capture via map/location is added in Phase C.) */
+/** Phase 1 — phone number + permanent address (via location service). */
 export function PhoneStep({ pending, error, onSubmit }: Props) {
     const [phone, setPhone] = useState('')
+    const [address, setAddress] = useState<RegistrationAddress>({})
     const form = useZodForm(phoneSchema, { phone })
 
-    // Address is collected later (Account settings / Phase C map picker); the
-    // backend accepts an empty address at this phase.
-    const submit = form.handleSubmit((values) => onSubmit(values.phone, {}))
+    // Address is optional at this phase (backend accepts an empty one and it can
+    // be set later in the profile), but strongly encouraged via the picker.
+    const submit = form.handleSubmit((values) => onSubmit(values.phone, address))
 
     return (
         <View style={styles.container}>
@@ -39,6 +41,8 @@ export function PhoneStep({ pending, error, onSubmit }: Props) {
                 onBlur={form.onBlur('phone')}
                 errors={form.fieldError('phone')}
             />
+
+            <AddressPicker value={address} onChange={setAddress} disabled={pending} />
 
             {error ? (
                 <Text variant="caption" color="danger">
