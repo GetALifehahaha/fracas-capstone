@@ -3,6 +3,8 @@ import { Megaphone, Waves } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
 import { useAlertEvents } from '@/features/alerts/hooks/useAlertEvents'
 import type { AlertEvent } from '@/features/alerts/types/api'
+import ErrorState from '@/common/components/ErrorState'
+import { Stagger, StaggerItem } from '@/common/motion'
 import { useMyFloodActivity } from '../hooks/useMyActivity'
 import type { FloodActivity, FloodActivityAction } from '../types'
 
@@ -85,27 +87,45 @@ const OperatorActivity = () => {
             <SectionShell icon={<Megaphone className='size-4' />} title='Broadcasts sent'>
                 {broadcasts.isLoading && <Empty text='Loading…' />}
                 {broadcasts.isError && (
-                    <p className='text-sm text-destructive'>Couldn&apos;t load your broadcasts.</p>
+                    <ErrorState
+                        variant='inline'
+                        title='Couldn’t load broadcasts'
+                        message='Your sent advisories didn’t load just now.'
+                        onRetry={() => broadcasts.refetch()}
+                    />
                 )}
                 {!broadcasts.isLoading && !broadcasts.isError && broadcastRows.length === 0 && (
                     <Empty text='No broadcasts yet.' />
                 )}
-                {broadcastRows.map((e) => (
-                    <BroadcastRow key={e.id} event={e} />
-                ))}
+                <Stagger className='flex flex-col gap-2'>
+                    {broadcastRows.map((e) => (
+                        <StaggerItem key={e.id}>
+                            <BroadcastRow event={e} />
+                        </StaggerItem>
+                    ))}
+                </Stagger>
             </SectionShell>
 
             <SectionShell icon={<Waves className='size-4' />} title='Flood-event actions'>
                 {floods.isLoading && <Empty text='Loading…' />}
                 {floods.isError && (
-                    <p className='text-sm text-destructive'>Couldn&apos;t load your activity.</p>
+                    <ErrorState
+                        variant='inline'
+                        title='Couldn’t load activity'
+                        message='Your recent flood-event actions didn’t load just now.'
+                        onRetry={() => floods.refetch()}
+                    />
                 )}
                 {!floods.isLoading && !floods.isError && floodRows.length === 0 && (
                     <Empty text='No flood-event actions yet.' />
                 )}
-                {floodRows.map((c) => (
-                    <FloodRow key={c.id} change={c} />
-                ))}
+                <Stagger className='flex flex-col gap-2'>
+                    {floodRows.map((c) => (
+                        <StaggerItem key={c.id}>
+                            <FloodRow change={c} />
+                        </StaggerItem>
+                    ))}
+                </Stagger>
             </SectionShell>
         </div>
     )

@@ -6,17 +6,24 @@ import EditProfileDialog from './components/EditProfileDialog'
 import ChangePasswordDialog from './components/ChangePasswordDialog'
 import OperatorActivity from './components/OperatorActivity'
 import AccountChangeLog from './components/AccountChangeLog'
+import ErrorState from '@/common/components/ErrorState'
 import { useCurrentUser } from './hooks/useCurrentUser'
 
 const AccountPage = () => {
-	const { data: user, isLoading, isError } = useCurrentUser()
+	const { data: user, isLoading, isError, refetch } = useCurrentUser()
 
 	if (isLoading) {
 		return <div className='p-6 text-muted-foreground'>Loading your account…</div>
 	}
 
 	if (isError || !user) {
-		return <div className='p-6 text-red-500'>Couldn’t load your account. Please try again.</div>
+		return (
+			<ErrorState
+				title='Couldn’t load your account'
+				message='We ran into a problem fetching your profile. This is usually a brief connection hiccup — give it another try.'
+				onRetry={() => refetch()}
+			/>
+		)
 	}
 
 	return (

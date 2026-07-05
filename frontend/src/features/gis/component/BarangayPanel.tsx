@@ -1,4 +1,5 @@
-import { AlertTriangle, ChevronRight, History, RotateCw, Waves, X, XIcon } from 'lucide-react'
+import { AlertTriangle, ChevronRight, History, Waves, X } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/common/ui/card'
@@ -22,6 +23,7 @@ import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
 import type { BarangayRisk, RiskFactorBreakdown } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
+import ErrorState from '@/common/components/ErrorState'
 
 const chartConfig = {
     rainfall: { label: 'Rainfall', color: 'var(--chart-2)' },
@@ -37,11 +39,19 @@ const FACTOR_LABELS: Record<string, string> = {
 const fmt = (v: number | null | undefined): string =>
     v == null ? '—' : `${Math.round(v * 10) / 10}`
 
-const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className='absolute top-1/2 -translate-y-1/2 right-0 z-3 max-h-[80vh] overflow-y-auto w-1/4 border-l bg-background shadow-xl rounded-xl'>
-        <div className='flex h-full flex-col gap-3 overflow-y-auto p-4'>{children}</div>
-    </div>
-)
+const Shell = ({ children }: { children: React.ReactNode }) => {
+    const reduce = useReducedMotion()
+    return (
+        <motion.div
+            initial={reduce ? { y: '-50%' } : { opacity: 0, x: 24, y: '-50%' }}
+            animate={{ opacity: 1, x: 0, y: '-50%' }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            className='absolute top-1/2 right-0 z-3 max-h-[80vh] overflow-y-auto w-1/4 border-l bg-background shadow-xl rounded-xl'
+        >
+            <div className='flex h-full flex-col gap-3 overflow-y-auto p-4'>{children}</div>
+        </motion.div>
+    )
+}
 
 const CloseButton = ({ onClose }: { onClose: () => void }) => (
     <button
@@ -343,18 +353,12 @@ const BarangayPanel = ({ barangayId, onClose }: BarangayPanelProps) => {
 
             {isLoading && <LoadingCard />}
             {isError && (
-                <Card className='items-center gap-2'>
-                    <div className='flex items-center gap-1'>
-                        <XIcon className='text-destructive' strokeOpacity={0.5} />
-                        <h1 className='text-destructive/80 text-center font-semibold'>
-                            Barangay detail did not load properly.
-                        </h1>
-                    </div>
-                    <Button type='button' onClick={() => refetch()} className='mt-4'>
-                        <RotateCw />
-                        Reload Barangay Information
-                    </Button>
-                </Card>
+                <ErrorState
+                    variant='inline'
+                    title='Barangay detail unavailable'
+                    message='We couldn’t load this barangay’s risk breakdown. It should be back after a quick retry.'
+                    onRetry={() => refetch()}
+                />
             )}
             {data && <PanelBody data={data} />}
         </Shell>

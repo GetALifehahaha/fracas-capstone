@@ -11,6 +11,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
+import ErrorState from '@/common/components/ErrorState'
 import { useFloodEventChanges } from '../hooks/useFloodEventChanges'
 import { CHANGE_ACTION_LABELS, CHANGE_FIELD_LABELS } from '../constants/floodEvents'
 import type { FloodEventChange } from '../types/api'
@@ -59,7 +60,7 @@ interface ChangeHistoryModalProps {
 /** Scrollable audit-trail modal for one flood event. Fetches lazily on open. */
 const ChangeHistoryModal = ({ eventId }: ChangeHistoryModalProps) => {
     const [open, setOpen] = useState(false)
-    const { data: changes, isLoading, isError } = useFloodEventChanges(eventId, open)
+    const { data: changes, isLoading, isError, refetch } = useFloodEventChanges(eventId, open)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -82,7 +83,12 @@ const ChangeHistoryModal = ({ eventId }: ChangeHistoryModalProps) => {
                 <div className='flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1'>
                     {isLoading && <p className='text-sm text-black/50'>Loading…</p>}
                     {isError && (
-                        <p className='text-sm text-destructive'>Couldn&apos;t load the change log.</p>
+                        <ErrorState
+                            variant='inline'
+                            title='Couldn’t load the change log'
+                            message='We couldn’t fetch this event’s edit history. Give it another try.'
+                            onRetry={() => refetch()}
+                        />
                     )}
                     {changes?.length === 0 && (
                         <p className='text-sm text-black/50'>No changes recorded yet.</p>

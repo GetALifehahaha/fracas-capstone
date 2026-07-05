@@ -11,10 +11,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
-import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/common/ui/field'
+import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { DateTimePicker } from '@/common/ui/datetime-picker'
 import { Textarea } from '@/common/ui/textarea'
+import { useZodForm } from '@/common/hooks/useZodForm'
+import { FloodEventSchema } from '../schemas'
 import {
     Select,
     SelectContent,
@@ -109,6 +111,16 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
     const [form, setForm] = useState(initial)
     const [timeline, setTimeline] = useState<TimelineRow[]>(initialTimeline)
 
+    const { fieldError, onBlur, markTouched, handleSubmit, reset } = useZodForm(FloodEventSchema, {
+        barangay: form.barangay,
+        occurred_at: form.occurredAt,
+        ended_at: form.endedAt,
+        source_type: form.sourceType,
+        source: form.source,
+        reported_by: form.reportedById,
+        flood_depth: form.floodDepth,
+    })
+
     const barangayOptions = useMemo(
         () =>
             (collection?.features ?? [])
@@ -124,6 +136,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
         if (next) {
             setForm(initial())
             setTimeline(initialTimeline())
+            reset()
             save.reset()
         }
     }
@@ -135,8 +148,10 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
     const setStr = (key: keyof FormState) => (value: string) =>
         setForm((f) => ({ ...f, [key]: value }))
 
-    const pickOperator = (operator: Operator) =>
+    const pickOperator = (operator: Operator) => {
         setForm((f) => ({ ...f, reportedById: operator.id, reportedByName: operator.name }))
+        markTouched('reported_by')
+    }
 
     const setRow = (i: number, key: keyof TimelineRow, value: string) =>
         setTimeline((rows) => rows.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)))
@@ -144,15 +159,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
         setTimeline((rows) => [...rows, { occurred_at: form.occurredAt, title: '', description: '' }])
     const removeRow = (i: number) => setTimeline((rows) => rows.filter((_, idx) => idx !== i))
 
-    const datesValid =
-        !form.endedAt || !form.occurredAt || new Date(form.endedAt) >= new Date(form.occurredAt)
-    const sourceValid = form.sourceType !== 'operator' || form.reportedById != null
-    const canSave =
-        form.barangay !== '' && form.occurredAt !== '' && datesValid && sourceValid && !save.isPending
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!canSave) return
+    const onSubmit = handleSubmit(() => {
         const isOperatorSource = form.sourceType === 'operator'
         const payload: FloodEventInput = {
             barangay: Number(form.barangay),
@@ -176,7 +183,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                 })),
         }
         save.mutate({ id: event?.id, payload }, { onSuccess: () => setOpen(false) })
-    }
+    })
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,7 +196,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={onSubmit}>
                     <div className='grid grid-cols-1 gap-6 md:grid-cols-2 w-full'>
                         {/* --- Details column --- */}
                         <FieldGroup className='gap-3'>
@@ -200,7 +207,10 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                 <Select
                                     id='fe-barangay'
                                     value={form.barangay}
-                                    onValueChange={(v) => setStr('barangay')(String(v))}
+                                    onValueChange={(v) => {
+                                        setStr('barangay')(String(v))
+                                        markTouched('barangay')
+                                    }}
                                 >
                                     <SelectTrigger className='w-full'>
                                         <SelectValue placeholder='Select a barangay'>
@@ -215,6 +225,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <FieldError errors={fieldError('barangay')} />
                             </Field>
 
                             <Field>
@@ -244,8 +255,12 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                 <DateTimePicker
                                     id='fe-occurred'
                                     value={form.occurredAt}
-                                    onChange={setStr('occurredAt')}
+                                    onChange={(v) => {
+                                        setStr('occurredAt')(v)
+                                        markTouched('occurred_at')
+                                    }}
                                 />
+                                <FieldError errors={fieldError('occurred_at')} />
                             </Field>
 
                             <Field>
@@ -255,13 +270,12 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                 <DateTimePicker
                                     id='fe-ended'
                                     value={form.endedAt}
-                                    onChange={setStr('endedAt')}
+                                    onChange={(v) => {
+                                        setStr('endedAt')(v)
+                                        markTouched('ended_at')
+                                    }}
                                 />
-                                {!datesValid && (
-                                    <FieldDescription className='text-destructive'>
-                                        Must be at or after the start time.
-                                    </FieldDescription>
-                                )}
+                                <FieldError errors={fieldError('ended_at')} />
                             </Field>
 
                             <Field>
@@ -275,7 +289,9 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                     min='0'
                                     value={form.floodDepth}
                                     onChange={(e) => setStr('floodDepth')(e.target.value)}
+                                    onBlur={onBlur('flood_depth')}
                                 />
+                                <FieldError errors={fieldError('flood_depth')} />
                             </Field>
 
                             <Field>
@@ -300,19 +316,26 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                                     </SelectContent>
                                 </Select>
                                 {form.sourceType === 'operator' ? (
-                                    <OperatorPicker
-                                        value={form.reportedById}
-                                        valueName={form.reportedByName}
-                                        onChange={pickOperator}
-                                    />
+                                    <>
+                                        <OperatorPicker
+                                            value={form.reportedById}
+                                            valueName={form.reportedByName}
+                                            onChange={pickOperator}
+                                        />
+                                        <FieldError errors={fieldError('reported_by')} />
+                                    </>
                                 ) : (
-                                    <Input
-                                        aria-label='Third-party source'
-                                        maxLength={255}
-                                        placeholder='e.g. PAGASA advisory, ABS-CBN report'
-                                        value={form.source}
-                                        onChange={(e) => setStr('source')(e.target.value)}
-                                    />
+                                    <>
+                                        <Input
+                                            aria-label='Third-party source'
+                                            maxLength={255}
+                                            placeholder='e.g. PAGASA advisory, ABS-CBN report'
+                                            value={form.source}
+                                            onChange={(e) => setStr('source')(e.target.value)}
+                                            onBlur={onBlur('source')}
+                                        />
+                                        <FieldError errors={fieldError('source')} />
+                                    </>
                                 )}
                             </Field>
 
@@ -425,7 +448,7 @@ const FloodEventForm = ({ event, trigger }: FloodEventFormProps) => {
                         <DialogClose
                             render={<Button type='button' variant='outline'>Cancel</Button>}
                         />
-                        <Button type='submit' disabled={!canSave} className='cursor-pointer'>
+                        <Button type='submit' disabled={save.isPending} className='cursor-pointer'>
                             {save.isPending ? 'Saving…' : event ? 'Save changes' : 'Create event'}
                         </Button>
                     </DialogFooter>

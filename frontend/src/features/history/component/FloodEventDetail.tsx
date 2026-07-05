@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ArrowLeft, BadgeCheck, CheckCircle2, Pencil } from 'lucide-react'
 import NotFound from '@/common/pages/NotFound'
+import ErrorState from '@/common/components/ErrorState'
 import { Badge } from '@/common/ui/badge'
 import { Button } from '@/common/ui/button'
 import { Card, CardContent, CardTitle } from '@/common/ui/card'
@@ -125,7 +126,7 @@ const FloodEventDetail = () => {
     const { isOperator } = useAuth()
 
     const numericId = id ? Number(id) : undefined
-    const { data: event, isLoading, isError } = useFloodEvent(numericId)
+    const { data: event, isLoading, isError, refetch } = useFloodEvent(numericId)
 
     if (!id || Number.isNaN(numericId)) return <NotFound />
 
@@ -133,7 +134,13 @@ const FloodEventDetail = () => {
         return <div className='p-4 text-black/50'>Loading…</div>
     }
     if (isError || !event) {
-        return <div className='p-4 text-destructive'>Couldn&apos;t load this flood event.</div>
+        return (
+            <ErrorState
+                title='Couldn’t load this flood event'
+                message='We couldn’t fetch the details for this record. It may have been removed, or the connection dropped.'
+                onRetry={() => refetch()}
+            />
+        )
     }
 
     const { telemetry } = event

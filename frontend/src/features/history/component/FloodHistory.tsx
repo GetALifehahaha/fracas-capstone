@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { format } from 'date-fns'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { DateRange } from 'react-day-picker'
@@ -35,6 +36,7 @@ import {
     PaginationPrevious,
 } from '@/common/ui/pagination'
 import { cn } from '@/common/utils/utils'
+import ErrorState from '@/common/components/ErrorState'
 import { getPageItems } from '@/common/utils/pageItems'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
 import { useFloodEvents } from '../hooks/useFloodEvents'
@@ -69,9 +71,14 @@ const toDay = (date: Date): string => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/** Classes mirroring {@link TableRow} — applied to the animated `motion.tr` rows. */
+const ROW_CLASS =
+    'border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer'
+
 const FloodHistory = () => {
     const navigate = useNavigate()
     const { isOperator } = useAuth()
+    const reduce = useReducedMotion()
     const [page, setPage] = useState(1)
 
     // All filters are URL-driven so they're shareable and the map panel can deep-link.
@@ -134,7 +141,7 @@ const FloodHistory = () => {
         ...(after && { occurred_after: after }),
         ...(before && { occurred_before: before }),
     }
-    const { data, isLoading, isError } = useFloodEvents(filters)
+    const { data, isLoading, isError, refetch } = useFloodEvents(filters)
 
     const events = data?.results ?? []
     const count = data?.count ?? 0
@@ -279,8 +286,13 @@ const FloodHistory = () => {
                     )}
                     {isError && (
                         <TableRow>
-                            <TableCell colSpan={COLS} className='text-destructive'>
-                                Couldn&apos;t load the flood history.
+                            <TableCell colSpan={COLS}>
+                                <ErrorState
+                                    variant='inline'
+                                    title='Couldn’t load flood history'
+                                    message='The flood-event records didn’t load. This is usually a brief connection issue.'
+                                    onRetry={() => refetch()}
+                                />
                             </TableCell>
                         </TableRow>
                     )}
@@ -291,10 +303,17 @@ const FloodHistory = () => {
                             </TableCell>
                         </TableRow>
                     )}
-                    {events.map((e) => (
-                        <TableRow
+                    {events.map((e, i) => (
+                        <motion.tr
                             key={e.id}
-                            className='cursor-pointer'
+                            className={ROW_CLASS}
+                            initial={reduce ? false : { opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                                duration: 0.24,
+                                delay: Math.min(i * 0.03, 0.3),
+                                ease: [0.22, 1, 0.36, 1],
+                            }}
                             onClick={() => navigate(`/history/${e.id}`)}
                         >
                             <TableCell
@@ -338,7 +357,7 @@ const FloodHistory = () => {
                                     View <ArrowRight />
                                 </Button>
                             </TableCell>
-                        </TableRow>
+                        </motion.tr>
                     ))}
                 </TableBody>
                 <TableFooter>

@@ -11,6 +11,7 @@ import {
 } from '@/common/ui/dialog'
 import { Input } from '@/common/ui/input'
 import { cn } from '@/common/utils/utils'
+import ErrorState from '@/common/components/ErrorState'
 import { useOperators } from '../hooks/useOperators'
 import type { Operator } from '../types/api'
 
@@ -25,7 +26,7 @@ interface OperatorPickerProps {
 const OperatorPicker = ({ value, valueName, onChange }: OperatorPickerProps) => {
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
-    const { data: operators, isLoading, isError } = useOperators(open)
+    const { data: operators, isLoading, isError, refetch } = useOperators(open)
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
@@ -82,7 +83,12 @@ const OperatorPicker = ({ value, valueName, onChange }: OperatorPickerProps) => 
                 <div className='flex max-h-[50vh] flex-col gap-0.5 overflow-y-auto'>
                     {isLoading && <p className='p-2 text-sm text-black/50'>Loading…</p>}
                     {isError && (
-                        <p className='p-2 text-sm text-destructive'>Couldn&apos;t load operators.</p>
+                        <ErrorState
+                            variant='inline'
+                            title='Couldn’t load operators'
+                            message='The operator list didn’t load. Try again in a moment.'
+                            onRetry={() => refetch()}
+                        />
                     )}
                     {!isLoading && !isError && filtered.length === 0 && (
                         <p className='p-2 text-sm text-black/50'>No operators match.</p>

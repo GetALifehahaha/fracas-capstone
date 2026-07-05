@@ -9,9 +9,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
-import { Field, FieldLabel, FieldDescription } from '@/common/ui/field'
+import { Field, FieldLabel, FieldDescription, FieldError } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
+import { useZodForm } from '@/common/hooks/useZodForm'
+import { ProfileSchema } from '../schemas'
 import {
     Select,
     SelectContent,
@@ -83,10 +85,19 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
     const cities = useCities(form.address.province_code)
     const barangays = usePsgcBarangays(form.address.city_code)
 
+    const { fieldError, onBlur, handleSubmit, reset } = useZodForm(ProfileSchema, {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        phone_number: form.phone_number,
+        zip_code: form.address.zip_code,
+    })
+
     // Reset the fields to the latest profile whenever the dialog opens.
     const onOpenChange = (next: boolean) => {
         if (next) {
             setForm(initial())
+            reset()
             update.reset()
         }
         setOpen(next)
@@ -99,8 +110,7 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
     const setAddr = (patch: Partial<Address>) =>
         setForm((prev) => ({ ...prev, address: { ...prev.address, ...patch } }))
 
-    const onSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
+    const onSubmit = handleSubmit(() => {
         const payload: ProfileUpdate = {
             first_name: form.first_name,
             last_name: form.last_name,
@@ -109,7 +119,7 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
             address: form.address,
         }
         update.mutate(payload, { onSuccess: () => setOpen(false) })
-    }
+    })
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,16 +137,35 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
                         <div className="grid grid-cols-2 gap-4">
                             <Field>
                                 <FieldLabel htmlFor="first_name">First name</FieldLabel>
-                                <Input id="first_name" value={form.first_name} onChange={set('first_name')} />
+                                <Input
+                                    id="first_name"
+                                    value={form.first_name}
+                                    onChange={set('first_name')}
+                                    onBlur={onBlur('first_name')}
+                                />
+                                <FieldError errors={fieldError('first_name')} />
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="last_name">Last name</FieldLabel>
-                                <Input id="last_name" value={form.last_name} onChange={set('last_name')} />
+                                <Input
+                                    id="last_name"
+                                    value={form.last_name}
+                                    onChange={set('last_name')}
+                                    onBlur={onBlur('last_name')}
+                                />
+                                <FieldError errors={fieldError('last_name')} />
                             </Field>
                         </div>
                         <Field>
                             <FieldLabel htmlFor="email">Email</FieldLabel>
-                            <Input id="email" type="email" value={form.email} onChange={set('email')} />
+                            <Input
+                                id="email"
+                                type="email"
+                                value={form.email}
+                                onChange={set('email')}
+                                onBlur={onBlur('email')}
+                            />
+                            <FieldError errors={fieldError('email')} />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="phone_number">Phone number</FieldLabel>
@@ -147,7 +176,9 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
                                 placeholder="+639…"
                                 value={form.phone_number}
                                 onChange={set('phone_number')}
+                                onBlur={onBlur('phone_number')}
                             />
+                            <FieldError errors={fieldError('phone_number')} />
                         </Field>
 
                         <Field>
@@ -223,7 +254,9 @@ const EditProfileDialog = ({ user }: { user: CurrentUser }) => {
                                     placeholder="7000"
                                     value={form.address.zip_code}
                                     onChange={(e) => setAddr({ zip_code: e.target.value })}
+                                    onBlur={onBlur('zip_code')}
                                 />
+                                <FieldError errors={fieldError('zip_code')} />
                             </Field>
                         </div>
                     </div>

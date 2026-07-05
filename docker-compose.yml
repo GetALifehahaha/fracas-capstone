@@ -84,7 +84,9 @@ services:
 
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: dev
     volumes:
       - ./frontend:/frontend
       - frontend_node_modules:/frontend/node_modules

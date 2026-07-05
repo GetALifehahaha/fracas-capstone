@@ -10,10 +10,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
-import { Field, FieldLabel, FieldDescription } from '@/common/ui/field'
+import { Field, FieldLabel, FieldDescription, FieldError } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
+import { useZodForm } from '@/common/hooks/useZodForm'
 import { useChangePassword } from '../hooks/useCurrentUser'
+import { PasswordChangeSchema } from '../schemas'
 
 const EMPTY = { current_password: '', new_password: '', confirm: '' }
 
@@ -32,13 +34,13 @@ const errorMessage = (error: unknown): string => {
 const ChangePasswordDialog = () => {
     const [open, setOpen] = useState(false)
     const [form, setForm] = useState(EMPTY)
-    const [mismatch, setMismatch] = useState(false)
     const change = useChangePassword()
+    const { fieldError, onBlur, handleSubmit, reset } = useZodForm(PasswordChangeSchema, form)
 
     const onOpenChange = (next: boolean) => {
         if (next) {
             setForm(EMPTY)
-            setMismatch(false)
+            reset()
             change.reset()
         }
         setOpen(next)
@@ -47,18 +49,12 @@ const ChangePasswordDialog = () => {
     const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
-    const onSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (form.new_password !== form.confirm) {
-            setMismatch(true)
-            return
-        }
-        setMismatch(false)
+    const onSubmit = handleSubmit((data) => {
         change.mutate(
-            { current_password: form.current_password, new_password: form.new_password },
+            { current_password: data.current_password, new_password: data.new_password },
             { onSuccess: () => setOpen(false) },
         )
-    }
+    })
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,7 +78,9 @@ const ChangePasswordDialog = () => {
                             autoComplete="current-password"
                             value={form.current_password}
                             onChange={set('current_password')}
+                            onBlur={onBlur('current_password')}
                         />
+                        <FieldError errors={fieldError('current_password')} />
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="new_password">New password</FieldLabel>
@@ -92,7 +90,9 @@ const ChangePasswordDialog = () => {
                             autoComplete="new-password"
                             value={form.new_password}
                             onChange={set('new_password')}
+                            onBlur={onBlur('new_password')}
                         />
+                        <FieldError errors={fieldError('new_password')} />
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="confirm">Confirm new password</FieldLabel>
@@ -102,12 +102,9 @@ const ChangePasswordDialog = () => {
                             autoComplete="new-password"
                             value={form.confirm}
                             onChange={set('confirm')}
+                            onBlur={onBlur('confirm')}
                         />
-                        {mismatch && (
-                            <FieldDescription className="text-red-500">
-                                The new passwords don’t match.
-                            </FieldDescription>
-                        )}
+                        <FieldError errors={fieldError('confirm')} />
                     </Field>
 
                     {change.isError && (

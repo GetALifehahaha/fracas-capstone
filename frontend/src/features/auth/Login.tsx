@@ -1,11 +1,29 @@
-import {useActionState, useEffect} from 'react'
+import { useActionState, useEffect } from 'react'
+import { AxiosError } from 'axios'
+import { Map, Megaphone, History, Waves } from 'lucide-react'
 import { LoginSchema } from './schemas/LoginSchema'
 import { Field, FieldSet, FieldLabel, FieldGroup, FieldDescription } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Button } from '@/common/ui/button'
+import { Stagger, StaggerItem } from '@/common/motion'
 import { useAuth } from './context/useAuth'
 import type { LoginState } from './types/authTypes'
 import { useNavigate } from 'react-router-dom'
+
+/** Turn a failed sign-in into one plain-language line for the operator. */
+const humanizeLoginError = (err: unknown): string => {
+	if (err instanceof AxiosError) {
+		if (err.response?.status === 401) return 'Incorrect username or password.'
+		if (!err.response) return "We couldn't reach the server. Check your connection and try again."
+	}
+	return 'Something went wrong signing you in. Please try again.'
+}
+
+const FEATURES = [
+	{ icon: Map, title: 'Live risk map', desc: 'Barangay flood hazard, refreshed every 15 minutes.' },
+	{ icon: Megaphone, title: 'Instant advisories', desc: 'Broadcast alerts to subscribers the moment risk turns critical.' },
+	{ icon: History, title: 'Flood history', desc: 'A searchable record of past events that validates the model.' },
+]
 
 const Login = () => {
 
@@ -37,8 +55,7 @@ const Login = () => {
 
 			return initialState;
 		} catch (err) {
-			console.log(err);
-			return { errors: {}};
+			return { errors: {}, formError: humanizeLoginError(err) };
 		}
 	}
 
@@ -50,8 +67,29 @@ const Login = () => {
 
 	return (
 		<div className='bg-blue-950 w-full h-screen flex p-2'>
-			<div className='flex items-center justify-center basis-2/5'>
-				
+			<div className='hidden basis-2/5 items-center justify-center p-10 md:flex'>
+				<Stagger className='flex max-w-sm flex-col gap-8 text-white'>
+					<StaggerItem className='flex items-center gap-3'>
+						<span className='flex size-11 items-center justify-center rounded-xl bg-white/10'>
+							<Waves className='size-6 text-blue-200' />
+						</span>
+						<div>
+							<p className='text-2xl font-bold tracking-tight'>FRACAS</p>
+							<p className='text-sm text-blue-200/80'>Flood-risk early-warning for Zamboanga City</p>
+						</div>
+					</StaggerItem>
+					<div className='flex flex-col gap-5'>
+						{FEATURES.map(({ icon: Icon, title, desc }) => (
+							<StaggerItem key={title} className='flex gap-3'>
+								<Icon className='mt-0.5 size-5 shrink-0 text-blue-300' />
+								<div>
+									<p className='text-sm font-semibold'>{title}</p>
+									<p className='text-sm text-blue-200/70'>{desc}</p>
+								</div>
+							</StaggerItem>
+						))}
+					</div>
+				</Stagger>
 			</div>
 
 			<form className='flex-1 bg-white rounded-2xl flex items-center justify-center flex-col' action={formAction}>
@@ -74,6 +112,9 @@ const Login = () => {
 								}
 							</Field>
 						</FieldGroup>
+						{state.formError &&
+							<FieldDescription className='text-destructive'>{state.formError}</FieldDescription>
+						}
 						<Button size="lg" type='submit' disabled={isPending} className="cursor-pointer">Log In</Button>
 						<Button type='button' className="ml-auto" variant="link">Forgot Password?</Button>
 				</FieldSet>

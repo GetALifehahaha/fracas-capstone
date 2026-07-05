@@ -11,10 +11,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/common/ui/dialog'
-import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/common/ui/field'
+import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Textarea } from '@/common/ui/textarea'
+import { useZodForm } from '@/common/hooks/useZodForm'
 import { useBroadcast } from '../hooks/useBroadcast'
+import { QuickAlertSchema } from '../schemas'
 
 interface QuickAlertDialogProps {
     barangayId: number
@@ -29,7 +31,7 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
     const [title, setTitle] = useState('')
     const [message, setMessage] = useState('')
 
-    const canSend = message.trim().length > 0 && !broadcast.isPending
+    const { fieldError, onBlur, handleSubmit, reset } = useZodForm(QuickAlertSchema, { message })
 
     // Reset the form + last result whenever the modal opens fresh.
     const onOpenChange = (next: boolean) => {
@@ -37,19 +39,18 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
         if (next) {
             setTitle('')
             setMessage('')
+            reset()
             broadcast.reset()
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!canSend) return
+    const onSubmit = handleSubmit(() => {
         broadcast.mutate({
             barangay: barangayId,
             title: title.trim() || undefined,
             message: message.trim(),
         })
-    }
+    })
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,7 +71,7 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={onSubmit}>
                     <FieldGroup className='gap-3'>
                         <Field>
                             <FieldLabel htmlFor='quick-alert-title'>
@@ -93,7 +94,9 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
                                 autoFocus
                                 placeholder='e.g. River rising fast — move to higher ground now.'
                                 onChange={(e) => setMessage(e.target.value)}
+                                onBlur={onBlur('message')}
                             />
+                            <FieldError errors={fieldError('message')} />
                         </Field>
 
                         {broadcast.isSuccess && (
@@ -110,7 +113,7 @@ const QuickAlertDialog = ({ barangayId, barangayName, triggerClassName }: QuickA
 
                         <DialogFooter>
                             <DialogClose render={<Button type='button' variant='outline'>Close</Button>} />
-                            <Button type='submit' disabled={!canSend} className='cursor-pointer'>
+                            <Button type='submit' disabled={broadcast.isPending} className='cursor-pointer'>
                                 {broadcast.isPending ? 'Sending…' : 'Send broadcast'}
                             </Button>
                         </DialogFooter>

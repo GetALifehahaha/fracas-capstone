@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Card } from '@/common/ui/card'
-import { Field, FieldGroup, FieldLabel, FieldDescription } from '@/common/ui/field'
+import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
 import { Textarea } from '@/common/ui/textarea'
 import { Button } from '@/common/ui/button'
@@ -12,7 +12,9 @@ import {
     SelectValue,
 } from '@/common/ui/select'
 import { useBarangays } from '@/features/gis/hooks/useBarangays'
+import { useZodForm } from '@/common/hooks/useZodForm'
 import { useBroadcast } from '../hooks/useBroadcast'
+import { BroadcastSchema } from '../schemas'
 
 /** Operator broadcast console: push a manual advisory to a barangay's subscribers. */
 const BroadcastForm = () => {
@@ -32,11 +34,12 @@ const BroadcastForm = () => {
     )
     const selectedName = options.find((o) => String(o.id) === barangay)?.name
 
-    const canSend = barangay !== '' && message.trim().length > 0 && !broadcast.isPending
+    const { fieldError, onBlur, markTouched, handleSubmit } = useZodForm(BroadcastSchema, {
+        barangay,
+        message,
+    })
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!canSend) return
+    const onSubmit = handleSubmit(() => {
         broadcast.mutate(
             { barangay: Number(barangay), title: title.trim() || undefined, message: message.trim() },
             {
@@ -46,7 +49,7 @@ const BroadcastForm = () => {
                 },
             },
         )
-    }
+    })
 
     return (
         <Card size='sm' className='my-4 gap-4'>
@@ -57,7 +60,7 @@ const BroadcastForm = () => {
                 </p>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={onSubmit}>
                 <FieldGroup className='gap-3'>
                     <div className='grid grid-cols-1 gap-3 md:grid-cols-[minmax(12rem,16rem)_1fr]'>
                         <Field>
@@ -65,7 +68,10 @@ const BroadcastForm = () => {
                             <Select
                                 id='broadcast-barangay'
                                 value={barangay}
-                                onValueChange={(v) => setBarangay(String(v))}
+                                onValueChange={(v) => {
+                                    setBarangay(String(v))
+                                    markTouched('barangay')
+                                }}
                                 disabled={loadingBarangays}
                             >
                                 <SelectTrigger className='w-full'>
@@ -81,6 +87,7 @@ const BroadcastForm = () => {
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <FieldError errors={fieldError('barangay')} />
                         </Field>
 
                         <Field>
@@ -105,11 +112,13 @@ const BroadcastForm = () => {
                             rows={3}
                             placeholder='e.g. Tumaga river rising fast — move to higher ground now.'
                             onChange={(e) => setMessage(e.target.value)}
+                            onBlur={onBlur('message')}
                         />
+                        <FieldError errors={fieldError('message')} />
                     </Field>
 
                     <div className='flex items-center gap-3'>
-                        <Button type='submit' size='sm' disabled={!canSend} className='cursor-pointer'>
+                        <Button type='submit' size='sm' disabled={broadcast.isPending} className='cursor-pointer'>
                             {broadcast.isPending ? 'Sending…' : 'Send broadcast'}
                         </Button>
                         {broadcast.isSuccess && (

@@ -1,6 +1,8 @@
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/common/ui/badge'
+import ErrorState from '@/common/components/ErrorState'
+import { Stagger, StaggerItem } from '@/common/motion'
 import { useAccountChanges } from '../hooks/useAccountChanges'
 import type { AccountChange } from '../types'
 
@@ -52,21 +54,30 @@ const ChangeRow = ({ change }: { change: AccountChange }) => {
 
 /** History of changes to the signed-in user's own account. */
 const AccountChangeLog = () => {
-    const { data, isLoading, isError } = useAccountChanges()
+    const { data, isLoading, isError, refetch } = useAccountChanges()
     const rows = data?.results.slice(0, LIMIT) ?? []
 
     return (
         <div className='flex flex-col gap-3'>
             {isLoading && <p className='text-sm text-black/40'>Loading…</p>}
             {isError && (
-                <p className='text-sm text-destructive'>Couldn&apos;t load your account history.</p>
+                <ErrorState
+                    variant='inline'
+                    title='Couldn’t load account history'
+                    message='Your recent account changes didn’t load just now.'
+                    onRetry={() => refetch()}
+                />
             )}
             {!isLoading && !isError && rows.length === 0 && (
                 <p className='text-sm text-black/40'>No account changes yet.</p>
             )}
-            {rows.map((change) => (
-                <ChangeRow key={change.id} change={change} />
-            ))}
+            <Stagger className='flex flex-col gap-3'>
+                {rows.map((change) => (
+                    <StaggerItem key={change.id}>
+                        <ChangeRow change={change} />
+                    </StaggerItem>
+                ))}
+            </Stagger>
         </div>
     )
 }

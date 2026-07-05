@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle } from 'lucide-react'
 import { Card } from '@/common/ui/card'
+import ErrorState from '@/common/components/ErrorState'
 import GISMap from './component/GISMap'
 import RiskCard from './component/RiskCard'
 import Legend from './component/Legend'
@@ -59,16 +60,13 @@ const Dashboard = () => {
             {selectedId == null && (
                 <div className='absolute top-4 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
                     {isError ? (
-                        <Card size='sm' className='col-span-2 items-start gap-2 px-3'>
-                            <p className='text-destructive text-sm'>Could not load risk data.</p>
-                            <button
-                                type='button'
-                                onClick={refetch}
-                                className='text-sm underline underline-offset-2'
-                            >
-                                Retry
-                            </button>
-                        </Card>
+                        <ErrorState
+                            variant='inline'
+                            className='col-span-2'
+                            title='Risk data unavailable'
+                            message='We couldn’t load the latest barangay risk scores. The map may be out of date until this recovers.'
+                            onRetry={() => refetch()}
+                        />
                     ) : (
                         <>
                             <FreshnessBar computedAt={computedAt} degradedCount={degradedCount} />

@@ -25,6 +25,8 @@ const RiskCard = ({ group, onSelect }: RiskCardProps) => {
             className={cn(
                 'flex-row items-center gap-4 px-4 transition-all',
                 hasBarangays && 'cursor-pointer',
+                hasBarangays && !isExpanded &&
+                    'hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none',
                 isExpanded && 'col-span-2',
             )}
             onClick={toggle}
