@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { History, MapPin, Plus, TriangleAlert } from 'lucide-react'
+import { Check, MapPin, Plus, TriangleAlert } from 'lucide-react'
 import { Map, MapControls } from '@/common/ui/map'
 import { Card } from '@/common/ui/card'
 import { Button } from '@/common/ui/button'
@@ -11,8 +11,8 @@ import BarangayTooltip from './BarangayTooltip'
 import DamLayer from './DamLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
 import HotspotLayer from '../poi/HotspotLayer'
-import PoiLogDialog from '../poi/PoiLogDialog'
-import LayersControl, { type LayerKey, type LayerVisibility } from './LayersControl'
+import LayersControl from './LayersControl'
+import { type LayerKey, type LayerVisibility } from '../constants/layers'
 import type { PoiLayerHandle } from '../poi/types'
 
 interface GISMapProps {
@@ -34,6 +34,26 @@ const centroidOf = (
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
+/** One row in the operator's vertical "edit places" menu. */
+const MenuItem = ({
+    icon: Icon,
+    label,
+    onClick,
+}: {
+    icon: typeof Plus
+    label: string
+    onClick: () => void
+}) => (
+    <button
+        type='button'
+        onClick={onClick}
+        className='hover:bg-muted flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors'
+    >
+        <Icon className='size-4 shrink-0' />
+        {label}
+    </button>
+)
+
 const GISMap = ({
     data,
     selectedId,
@@ -46,7 +66,6 @@ const GISMap = ({
     const [hoveredId, setHoveredId] = useState<number | null>(null)
     const { isOperator } = useAuth()
     const [poiEdit, setPoiEdit] = useState(false)
-    const [historyOpen, setHistoryOpen] = useState(false)
     const [layers, setLayers] = useState<LayerVisibility>({
         dam: true,
         evacuation: true,
@@ -75,51 +94,45 @@ const GISMap = ({
 
     return (
         <Card className='relative h-full p-0 overflow-hidden'>
-            {/* Operator POI editing controls. */}
-            {isOperator && (
-                <div className='absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
-                    <Button
-                        size='sm'
-                        variant={poiEdit ? 'default' : 'ghost'}
-                        className='cursor-pointer rounded-full'
-                        onClick={togglePoiEdit}
-                    >
-                        <MapPin className='size-4' />
-                        {poiEdit ? 'Editing places' : 'Edit places'}
-                    </Button>
-                    {poiEdit && (
-                        <>
+            {/* Top toolbar: layer toggles (everyone) + operator POI editing. */}
+            <div className='absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+                <LayersControl layers={layers} onToggle={toggleLayer} />
+                {isOperator && (
+                    <>
+                        <div className='bg-border mx-1 h-5 w-px' />
+                        <div className='relative'>
                             <Button
                                 size='sm'
-                                variant='ghost'
+                                variant={poiEdit ? 'default' : 'ghost'}
                                 className='cursor-pointer rounded-full'
-                                onClick={() => evacRef.current?.startAdd()}
+                                onClick={togglePoiEdit}
                             >
-                                <Plus className='size-4' />
-                                Add center
+                                <MapPin className='size-4' />
+                                {poiEdit ? 'Editing places' : 'Edit points of interest'}
                             </Button>
-                            <Button
-                                size='sm'
-                                variant='ghost'
-                                className='cursor-pointer rounded-full'
-                                onClick={() => hotspotRef.current?.startAdd()}
-                            >
-                                <TriangleAlert className='size-4' />
-                                Add hotspot
-                            </Button>
-                        </>
-                    )}
-                    <Button
-                        size='sm'
-                        variant='ghost'
-                        className='cursor-pointer rounded-full'
-                        onClick={() => setHistoryOpen(true)}
-                    >
-                        <History className='size-4' />
-                        History
-                    </Button>
-                </div>
-            )}
+                            {poiEdit && (
+                                <Card
+                                    size='sm'
+                                    className='absolute top-[calc(100%+10px)] left-1/2 z-20 flex w-52 -translate-x-1/2 flex-col gap-0.5 p-1.5'
+                                >
+                                    <MenuItem
+                                        icon={Plus}
+                                        label='Add evacuation center'
+                                        onClick={() => evacRef.current?.startAdd()}
+                                    />
+                                    <MenuItem
+                                        icon={TriangleAlert}
+                                        label='Add flood hotspot'
+                                        onClick={() => hotspotRef.current?.startAdd()}
+                                    />
+                                    <div className='bg-border my-0.5 h-px' />
+                                    <MenuItem icon={Check} label='Done editing' onClick={togglePoiEdit} />
+                                </Card>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
 
             <Map center={[122.07, 6.92]} zoom={11} theme='light'>
                 <MapControls position='bottom-left' showFullscreen={true} />
@@ -171,9 +184,6 @@ const GISMap = ({
                     focusedBarangayId={selectedId}
                 />
             </Map>
-
-            <LayersControl layers={layers} onToggle={toggleLayer} />
-            <PoiLogDialog open={historyOpen} onOpenChange={setHistoryOpen} />
         </Card>
     )
 }

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import { Input } from '@/common/ui/input'
 import { Label } from '@/common/ui/label'
+import { Checkbox } from '@/common/ui/checkbox'
 import { Textarea } from '@/common/ui/textarea'
 import {
     Select,
@@ -27,22 +28,31 @@ const SEVERITIES: { value: HotspotSeverity; label: string }[] = [
     { value: 'high', label: 'High' },
 ]
 
+const severityLabel = (value: HotspotSeverity): string =>
+    SEVERITIES.find((s) => s.value === value)?.label ?? value
+
 interface Props {
     initial: HotspotFormValues
     saving: boolean
     onSubmit: (values: HotspotFormValues) => void
     onCancel: () => void
     onDelete?: () => void
+    /** Fires on every edit, so the map can preview radius/severity live. */
+    onChange?: (values: HotspotFormValues) => void
 }
 
 /** Compact flood-hotspot form rendered inside a map popup. */
-const HotspotPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete }: Props) => {
+const HotspotPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete, onChange }: Props) => {
     const [values, setValues] = useState<HotspotFormValues>(initial)
-    const set = (patch: Partial<HotspotFormValues>) => setValues((v) => ({ ...v, ...patch }))
+    const set = (patch: Partial<HotspotFormValues>) => {
+        const next = { ...values, ...patch }
+        setValues(next)
+        onChange?.(next)
+    }
 
     return (
         <form
-            className='flex w-60 flex-col gap-2'
+            className='flex w-64 flex-col gap-2'
             onSubmit={(e) => {
                 e.preventDefault()
                 if (values.name.trim()) onSubmit(values)
@@ -63,8 +73,8 @@ const HotspotPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete }: Pro
                 <div className='flex flex-1 flex-col gap-1'>
                     <Label className='text-xs'>Severity</Label>
                     <Select value={values.severity} onValueChange={(v) => set({ severity: v as HotspotSeverity })}>
-                        <SelectTrigger className='h-8'>
-                            <SelectValue />
+                        <SelectTrigger className='h-8 w-full'>
+                            <SelectValue>{(v: HotspotSeverity) => severityLabel(v)}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                             {SEVERITIES.map((s) => (
@@ -96,16 +106,13 @@ const HotspotPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete }: Pro
                     className='text-sm'
                 />
             </div>
-            <button
-                type='button'
-                onClick={() => set({ is_active: !values.is_active })}
-                className='flex items-center justify-between rounded-md border px-2 py-1.5 text-xs'
-            >
-                <span>Status</span>
-                <span className={values.is_active ? 'font-medium text-emerald-600' : 'text-muted-foreground'}>
-                    {values.is_active ? 'Active' : 'Inactive'}
-                </span>
-            </button>
+            <Label className='flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs font-normal'>
+                <Checkbox
+                    checked={values.is_active}
+                    onCheckedChange={(checked) => set({ is_active: checked === true })}
+                />
+                Active hotspot
+            </Label>
             <div className='flex items-center gap-2'>
                 <Button type='submit' size='sm' className='flex-1' disabled={saving || !values.name.trim()}>
                     {saving ? 'Saving…' : 'Save'}

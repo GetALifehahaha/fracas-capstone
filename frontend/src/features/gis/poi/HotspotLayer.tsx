@@ -18,8 +18,18 @@ import type { HotspotProperties, HotspotSeverity, PoiLayerHandle } from './types
 const SOURCE = 'flood-hotspots'
 const FILL = 'flood-hotspots-fill'
 const LINE = 'flood-hotspots-line'
+const DEFAULT_RADIUS = 300
 
 type HotspotFeature = Feature<Point, HotspotProperties>
+
+/** Live preview of the hotspot currently being edited, keyed by id or 'draft'. */
+type Preview = { key: number | 'draft'; radius_m: number; severity: HotspotSeverity }
+
+/** Parse the radius field, falling back to a sane default while it's empty. */
+const parseRadius = (s: string): number => {
+    const n = Number(s)
+    return s === '' || Number.isNaN(n) || n <= 0 ? DEFAULT_RADIUS : n
+}
 
 interface AreaInput {
     lng: number
@@ -103,12 +113,14 @@ const ReadOnlyDetails = ({ p }: { p: HotspotProperties }) => (
             <span className='font-medium'>{p.name}</span>
             <Badge
                 variant='outline'
+                className='capitalize'
                 style={{ borderColor: SEVERITY_COLOR[p.severity], color: SEVERITY_COLOR[p.severity] }}
             >
                 {p.severity}
             </Badge>
         </div>
         <span className='text-amber-600 text-xs font-medium'>Elevated flood risk — flooded area</span>
+        <span className='text-muted-foreground text-xs'>Radius: {p.radius_m} m</span>
         {p.description && <span className='text-muted-foreground text-xs'>{p.description}</span>}
         {p.barangay_name && <span className='text-muted-foreground text-xs'>{p.barangay_name}</span>}
     </div>
@@ -128,6 +140,7 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
     const { data } = useHotspots()
     const { create, update, remove } = useHotspotMutations()
     const [draft, setDraft] = useState<{ lng: number; lat: number } | null>(null)
+    const [preview, setPreview] = useState<Preview | null>(null)
 
     useImperativeHandle(
         ref,
@@ -136,8 +149,12 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                 if (!map) return
                 const c = map.getCenter()
                 setDraft({ lng: c.lng, lat: c.lat })
+                setPreview(null)
             },
-            reset: () => setDraft(null),
+            reset: () => {
+                setDraft(null)
+                setPreview(null)
+            },
         }),
         [map],
     )
@@ -148,14 +165,23 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
         ? features
         : features.filter((f) => f.properties.barangay === focusedBarangayId)
 
-    const areas: AreaInput[] = shown.map((f) => ({
-        lng: f.geometry.coordinates[0],
-        lat: f.geometry.coordinates[1],
-        radius_m: f.properties.radius_m,
-        severity: f.properties.severity,
-    }))
+    const areas: AreaInput[] = shown.map((f) => {
+        const isPrev = preview?.key === f.properties.id
+        return {
+            lng: f.geometry.coordinates[0],
+            lat: f.geometry.coordinates[1],
+            radius_m: isPrev ? preview.radius_m : f.properties.radius_m,
+            severity: isPrev ? preview.severity : f.properties.severity,
+        }
+    })
+    const draftSeverity = preview?.key === 'draft' ? preview.severity : 'medium'
     if (editMode && draft)
-        areas.push({ lng: draft.lng, lat: draft.lat, radius_m: 300, severity: 'medium' })
+        areas.push({
+            lng: draft.lng,
+            lat: draft.lat,
+            radius_m: preview?.key === 'draft' ? preview.radius_m : DEFAULT_RADIUS,
+            severity: draftSeverity,
+        })
 
     return (
         <>
@@ -178,7 +204,7 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                         <MarkerContent>
                             <Marker severity={p.severity} />
                         </MarkerContent>
-                        <MarkerPopup closeButton>
+                        <MarkerPopup closeButton className='max-w-72'>
                             {editMode ? (
                                 <HotspotPopupForm
                                     initial={{
@@ -189,9 +215,20 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                                         is_active: p.is_active,
                                     }}
                                     saving={update.isPending || remove.isPending}
-                                    onCancel={() => undefined}
-                                    onDelete={() => remove.mutate(p.id)}
-                                    onSubmit={(v) =>
+                                    onCancel={() => setPreview(null)}
+                                    onChange={(v) =>
+                                        setPreview({
+                                            key: p.id,
+                                            radius_m: parseRadius(v.radius_m),
+                                            severity: v.severity,
+                                        })
+                                    }
+                                    onDelete={() => {
+                                        setPreview(null)
+                                        remove.mutate(p.id)
+                                    }}
+                                    onSubmit={(v) => {
+                                        setPreview(null)
                                         update.mutate({
                                             id: p.id,
                                             payload: {
@@ -202,7 +239,7 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                                                 is_active: v.is_active,
                                             },
                                         })
-                                    }
+                                    }}
                                 />
                             ) : (
                                 <ReadOnlyDetails p={p} />
@@ -222,14 +259,33 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                         onDragEnd={({ lng, lat }) => setDraft({ lng, lat })}
                     >
                         <MarkerContent>
-                            <Marker severity='medium' />
+                            <Marker severity={draftSeverity} />
                         </MarkerContent>
                     </MapMarker>
-                    <MapPopup longitude={draft.lng} latitude={draft.lat} closeButton onClose={() => setDraft(null)}>
+                    <MapPopup
+                        longitude={draft.lng}
+                        latitude={draft.lat}
+                        closeButton
+                        className='max-w-72'
+                        onClose={() => {
+                            setDraft(null)
+                            setPreview(null)
+                        }}
+                    >
                         <HotspotPopupForm
                             initial={{ name: '', severity: 'medium', radius_m: '300', description: '', is_active: true }}
                             saving={create.isPending}
-                            onCancel={() => setDraft(null)}
+                            onCancel={() => {
+                                setDraft(null)
+                                setPreview(null)
+                            }}
+                            onChange={(v) =>
+                                setPreview({
+                                    key: 'draft',
+                                    radius_m: parseRadius(v.radius_m),
+                                    severity: v.severity,
+                                })
+                            }
                             onSubmit={(v) =>
                                 create.mutate(
                                     {
@@ -241,7 +297,12 @@ const HotspotLayer = forwardRef<PoiLayerHandle, Props>(function HotspotLayer(
                                         latitude: draft.lat,
                                         longitude: draft.lng,
                                     },
-                                    { onSuccess: () => setDraft(null) },
+                                    {
+                                        onSuccess: () => {
+                                            setDraft(null)
+                                            setPreview(null)
+                                        },
+                                    },
                                 )
                             }
                         />

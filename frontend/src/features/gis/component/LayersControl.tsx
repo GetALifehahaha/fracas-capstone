@@ -1,19 +1,5 @@
-import { Droplets, Eye, EyeOff, Layers, Tent, TriangleAlert } from 'lucide-react'
-import { Card } from '@/common/ui/card'
-
-export interface LayerVisibility {
-    dam: boolean
-    evacuation: boolean
-    hotspot: boolean
-}
-
-export type LayerKey = keyof LayerVisibility
-
-const ROWS: { key: LayerKey; label: string; icon: typeof Droplets; color: string }[] = [
-    { key: 'dam', label: 'Dam & river', icon: Droplets, color: '#2563eb' },
-    { key: 'evacuation', label: 'Evacuation centers', icon: Tent, color: '#059669' },
-    { key: 'hotspot', label: 'Flood hotspots', icon: TriangleAlert, color: '#f97316' },
-]
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/common/ui/tooltip'
+import { LAYERS, type LayerKey, type LayerVisibility } from '../constants/layers'
 
 interface Props {
     layers: LayerVisibility
@@ -21,38 +7,46 @@ interface Props {
 }
 
 /**
- * Toggle map POI layers on/off. When a layer is off its POIs still surface for
- * the focused barangay (handled by each layer), so this only governs the
- * city-wide view.
+ * Minimal icon-only layer toggles for the top toolbar. An off layer is greyed
+ * with a slash struck through its icon; hovering any icon names the layer.
+ * Layers still surface their POIs for the focused barangay (handled per layer),
+ * so this only governs the city-wide view.
  */
 const LayersControl = ({ layers, onToggle }: Props) => (
-    <Card size='sm' className='absolute bottom-4 right-4 z-3 flex w-52 flex-col gap-1 px-2 py-2'>
-        <div className='text-muted-foreground flex items-center gap-1.5 px-1 text-xs font-medium'>
-            <Layers className='size-3.5' />
-            Map layers
-        </div>
-        {ROWS.map(({ key, label, icon: Icon, color }) => {
+    <div className='flex items-center gap-0.5'>
+        {LAYERS.map(({ key, label, icon: Icon, color }) => {
             const on = layers[key]
             return (
-                <button
-                    key={key}
-                    type='button'
-                    onClick={() => onToggle(key)}
-                    className='hover:bg-muted flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-left text-sm transition-colors'
-                >
-                    <span className='flex items-center gap-2'>
-                        <Icon className='size-4' style={{ color: on ? color : undefined }} />
-                        <span className={on ? '' : 'text-muted-foreground'}>{label}</span>
-                    </span>
-                    {on ? (
-                        <Eye className='size-4 text-foreground/70' />
-                    ) : (
-                        <EyeOff className='text-muted-foreground size-4' />
-                    )}
-                </button>
+                <Tooltip key={key}>
+                    <TooltipTrigger
+                        render={
+                            <button
+                                type='button'
+                                onClick={() => onToggle(key)}
+                                aria-label={label}
+                                aria-pressed={on}
+                                className='hover:bg-muted relative flex size-8 items-center justify-center rounded-full transition-colors'
+                            >
+                                <Icon
+                                    className='size-4'
+                                    stroke={on ? color : 'currentColor'}
+                                    opacity={on ? 1 : 0.45}
+                                />
+                                {!on && (
+                                    <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                                        <span className='bg-muted-foreground/70 h-5 w-px rotate-45 rounded-full' />
+                                    </span>
+                                )}
+                            </button>
+                        }
+                    />
+                    <TooltipContent>
+                        {on ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+                    </TooltipContent>
+                </Tooltip>
             )
         })}
-    </Card>
+    </div>
 )
 
 export default LayersControl

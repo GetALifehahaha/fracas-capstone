@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/common/ui/button'
 import { Input } from '@/common/ui/input'
 import { Label } from '@/common/ui/label'
+import { Checkbox } from '@/common/ui/checkbox'
 
 export interface CenterFormValues {
     name: string
@@ -63,16 +64,13 @@ const CenterPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete }: Prop
                     />
                 </div>
             </div>
-            <button
-                type='button'
-                onClick={() => set({ is_active: !values.is_active })}
-                className='flex items-center justify-between rounded-md border px-2 py-1.5 text-xs'
-            >
-                <span>Status</span>
-                <span className={values.is_active ? 'font-medium text-emerald-600' : 'text-muted-foreground'}>
-                    {values.is_active ? 'Active' : 'Inactive'}
-                </span>
-            </button>
+            <Label className='flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs font-normal'>
+                <Checkbox
+                    checked={values.is_active}
+                    onCheckedChange={(checked) => set({ is_active: checked === true })}
+                />
+                Active center
+            </Label>
             <div className='flex items-center gap-2'>
                 <Button type='submit' size='sm' className='flex-1' disabled={saving || !values.name.trim()}>
                     {saving ? 'Saving…' : 'Save'}
