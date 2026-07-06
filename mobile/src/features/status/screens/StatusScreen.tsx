@@ -7,6 +7,7 @@ import { spacing, useTheme } from '@/common/theme'
 import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
+import { RiskMap } from '@/features/gis/components/RiskMap'
 import { useDamStatus } from '@/features/gis/hooks/useDamStatus'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
@@ -89,6 +90,14 @@ export function StatusScreen() {
                             </Text>
                         ) : null}
                     </View>
+
+                    <RiskMap
+                        data={riskMap.features}
+                        centers={centers.data}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        showUser={locStatus === 'granted'}
+                    />
 
                     <HazardCard
                         label="You are here"

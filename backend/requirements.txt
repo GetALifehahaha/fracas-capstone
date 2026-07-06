@@ -12,12 +12,14 @@ click-repl==0.3.0
 cryptography==49.0.0
 defusedxml==0.7.1
 Django==6.0.6
+django-cors-headers==4.9.0
 django-filter==25.2
 django-redis==7.0.0
 djangorestframework==3.17.1
 djangorestframework-gis==1.2.1
 djangorestframework_simplejwt==5.5.1
 djoser==2.3.3
+git-filter-repo==2.47.0
 gunicorn==26.0.0
 hiredis==3.4.0
 idna==3.18

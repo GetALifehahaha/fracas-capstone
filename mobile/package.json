@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.3",
+    "@maplibre/maplibre-react-native": "^11.3.6",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@tanstack/query-async-storage-persister": "^5.101.2",
     "@tanstack/react-query": "^5.101.2",
@@ -14,6 +15,7 @@
     "axios": "^1.18.1",
     "expo": "^57.0.2",
     "expo-constants": "~57.0.3",
+    "expo-dev-client": "~57.0.5",
     "expo-device": "~57.0.0",
     "expo-font": "~57.0.0",
     "expo-glass-effect": "~57.0.0",
