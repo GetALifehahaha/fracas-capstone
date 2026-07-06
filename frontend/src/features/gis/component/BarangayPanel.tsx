@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, History, Waves, X } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ChevronsRight, History, Waves, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
@@ -53,14 +53,24 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-const CloseButton = ({ onClose }: { onClose: () => void }) => (
+/** A square icon button used for the panel's hide/close affordances. */
+const HeaderButton = ({
+    onClick,
+    label,
+    children,
+}: {
+    onClick: () => void
+    label: string
+    children: React.ReactNode
+}) => (
     <button
         type='button'
-        onClick={onClose}
-        aria-label='Close panel'
+        onClick={onClick}
+        aria-label={label}
+        title={label}
         className='text-muted-foreground hover:bg-muted flex size-7 items-center justify-center rounded-md transition-colors'
     >
-        <X className='size-4' />
+        {children}
     </button>
 )
 
@@ -339,16 +349,25 @@ const PanelBody = ({ data }: { data: BarangayRisk }) => (
 interface BarangayPanelProps {
     barangayId: number
     onClose: () => void
+    /** Hide the panel while keeping the barangay focused on the map. */
+    onHide: () => void
 }
 
-const BarangayPanel = ({ barangayId, onClose }: BarangayPanelProps) => {
+const BarangayPanel = ({ barangayId, onClose, onHide }: BarangayPanelProps) => {
     const { data, isLoading, isError, refetch } = useBarangayRisk(barangayId)
 
     return (
         <Shell>
             <div className='flex items-start justify-between'>
                 <h1 className='text-2xl font-medium'>{data?.name ?? 'Barangay'}</h1>
-                <CloseButton onClose={onClose} />
+                <div className='flex items-center gap-1'>
+                    <HeaderButton onClick={onHide} label='Hide panel'>
+                        <ChevronsRight className='size-4' />
+                    </HeaderButton>
+                    <HeaderButton onClick={onClose} label='Close panel'>
+                        <X className='size-4' />
+                    </HeaderButton>
+                </div>
             </div>
 
             {isLoading && <LoadingCard />}
