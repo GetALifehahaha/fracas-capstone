@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'rest_framework_gis',
     'django.contrib.gis',
     'djoser',
+    "corsheaders",
 
     # APPS
     'rainfall_fetch',
@@ -96,10 +97,12 @@ INSTALLED_APPS = [
     'flood_events',
     'monitoring',
     'evacuation',
+    'analytics',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -237,3 +240,7 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
     # The JWT refresh cookie must only travel over HTTPS in production.
     SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True
+
+
+CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())

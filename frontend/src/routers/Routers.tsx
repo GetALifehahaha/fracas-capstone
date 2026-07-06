@@ -14,6 +14,7 @@ const FloodHistory = lazy(() => import('@/features/history/component/FloodHistor
 const FloodEventDetail = lazy(() => import('@/features/history/component/FloodEventDetail'))
 const AccountPage = lazy(() => import('@/features/user/AccountPage'))
 const AlertsPage = lazy(() => import('@/features/alerts/AlertsPage'))
+const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'))
 const TestAuth = lazy(() => import('@/common/test/TestAuth'))
 const NotFound = lazy(() => import('@/common/pages/NotFound'))
 
@@ -30,6 +31,7 @@ const Routers = () => {
           <Route path='/history/:id' element={<FloodEventDetail />} />
           <Route path='/me' element={<AccountPage />} />
           <Route path='/alerts' element={<OperatorRoute><AlertsPage /></OperatorRoute>} />
+          <Route path='/analytics' element={<OperatorRoute><AnalyticsPage /></OperatorRoute>} />
         </Route>
         <Route path='*' element={<NotFound />} />
       </Routes>

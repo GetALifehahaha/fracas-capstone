@@ -115,7 +115,7 @@ const Header = () => {
         {name: "Dashboard", link: "/"},
         {name: "Flood History", link: "/history"},
         // Operator-only console; residents never see it.
-        ...(isOperator ? [{name: "Alerts", link: "/alerts"}] : []),
+        ...(isOperator ? [{name: "Analytics", link: "/analytics"}, {name: "Alerts", link: "/alerts"}] : []),
     ]
 
     const linkList = links.map(({name, link}) =>

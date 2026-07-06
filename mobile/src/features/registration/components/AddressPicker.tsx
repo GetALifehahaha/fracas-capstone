@@ -7,6 +7,7 @@ import { Button, Card, Field, Text } from '@/common/ui'
 import { featureAt } from '@/features/gis/utils/geo'
 
 import { getPublicBarangays } from '../api/registrationApi'
+import { PinMapModal } from './PinMapModal'
 import type { RegistrationAddress } from '../types'
 
 interface Props {
@@ -27,9 +28,16 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
     const { request } = useCurrentLocation()
     const [mode, setMode] = useState<Mode>('idle')
     const [busy, setBusy] = useState(false)
+    const [pinOpen, setPinOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const detected = value.barangay?.trim() || null
+
+    const applyBarangay = (barangay: string) => {
+        onChange({ ...value, barangay })
+        setMode('idle')
+        setPinOpen(false)
+    }
 
     const resolveByLocation = async () => {
         setBusy(true)
@@ -46,8 +54,7 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                 setError('Your location isn’t inside a known barangay. You can set this later in your profile.')
                 return
             }
-            onChange({ ...value, barangay: match.properties.name })
-            setMode('idle')
+            applyBarangay(match.properties.name)
         } catch {
             setError('Couldn’t load barangays. Check your connection and try again.')
         } finally {
@@ -100,7 +107,12 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                         loading={busy}
                         disabled={disabled}
                     />
-                    <Button label="Drop a pin (soon)" variant="ghost" onPress={() => {}} disabled />
+                    <Button
+                        label="Drop a pin on the map"
+                        variant="ghost"
+                        onPress={() => setPinOpen(true)}
+                        disabled={disabled}
+                    />
                 </View>
             ) : (
                 <Button
@@ -116,6 +128,12 @@ export function AddressPicker({ value, onChange, disabled }: Props) {
                     {error}
                 </Text>
             ) : null}
+
+            <PinMapModal
+                visible={pinOpen}
+                onClose={() => setPinOpen(false)}
+                onConfirm={applyBarangay}
+            />
         </Card>
     )
 }

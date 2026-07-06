@@ -7,6 +7,9 @@ import { spacing, useTheme } from '@/common/theme'
 import { Button, Spinner, Text } from '@/common/ui'
 import { useCurrentLocation } from '@/common/hooks/useCurrentLocation'
 import { timeAgo } from '@/common/utils/time'
+import { NotificationBell } from '@/features/alerts/components/NotificationBell'
+import { useAutoSubscribeHome } from '@/features/alerts/hooks/useAutoSubscribeHome'
+import { RiskMap } from '@/features/gis/components/RiskMap'
 import { useDamStatus } from '@/features/gis/hooks/useDamStatus'
 import { useEvacuationCenters } from '@/features/gis/hooks/useEvacuationCenters'
 import { useRiskMap } from '@/features/gis/hooks/useRiskMap'
@@ -25,6 +28,9 @@ export function StatusScreen() {
     const dam = useDamStatus()
     const home = useHomeBarangay(riskMap.features)
     const { status: locStatus, coords, request } = useCurrentLocation()
+
+    // Turn alerts on for the resident: subscribe them to their home barangay once.
+    useAutoSubscribeHome()
 
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
@@ -81,14 +87,25 @@ export function StatusScreen() {
                     contentContainerStyle={styles.body}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 >
-                    <View style={styles.heading}>
-                        <Text variant="title">Flood status</Text>
-                        {riskMap.computedAt ? (
-                            <Text variant="caption" color="textMuted">
-                                Updated {timeAgo(riskMap.computedAt)}
-                            </Text>
-                        ) : null}
+                    <View style={styles.headingRow}>
+                        <View style={styles.heading}>
+                            <Text variant="title">Flood status</Text>
+                            {riskMap.computedAt ? (
+                                <Text variant="caption" color="textMuted">
+                                    Updated {timeAgo(riskMap.computedAt)}
+                                </Text>
+                            ) : null}
+                        </View>
+                        <NotificationBell />
                     </View>
+
+                    <RiskMap
+                        data={riskMap.features}
+                        centers={centers.data}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        showUser={locStatus === 'granted'}
+                    />
 
                     <HazardCard
                         label="You are here"
@@ -121,5 +138,10 @@ export function StatusScreen() {
 const styles = StyleSheet.create({
     flex: { flex: 1 },
     body: { padding: spacing.lg, gap: spacing.lg },
-    heading: { gap: spacing.xs },
+    headingRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+    },
+    heading: { gap: spacing.xs, flex: 1 },
 })

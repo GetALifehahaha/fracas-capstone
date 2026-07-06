@@ -23,5 +23,7 @@ export interface AuthContextType {
 
 export type LoginState = {
     errors: Partial<Record<keyof LoginSchemaType, string>>,
-    formError?: string
+    formError?: string,
+    /** Echoed back so a failed submit re-populates the fields React 19 auto-resets. */
+    values?: Partial<Record<keyof LoginSchemaType, string>>
 }
