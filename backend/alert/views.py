@@ -39,6 +39,12 @@ class NotificationViewSet(mixins.ListModelMixin, GenericViewSet):
         updated = self.get_queryset().filter(is_read=False).update(is_read=True)
         return Response({"detail": f"Marked {updated} read."})
 
+    @action(detail=False, methods=["get"])
+    def unread_count(self, request):
+        """Cheap unread tally for the tab badge / bell (no page fetch needed)."""
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({"count": count})
+
 
 class BroadcastView(APIView):
     """Operator action: push a custom advisory to a barangay's subscribers."""

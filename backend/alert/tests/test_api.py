@@ -34,3 +34,20 @@ class NotificationApiTests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         self.n1.refresh_from_db()
         self.assertTrue(self.n1.is_read)
+
+    def test_read_all(self):
+        Notification.objects.create(
+            user=self.user, barangay=self.barangay, category="high", title="B", body="b"
+        )
+        resp = self.client.post(reverse("notification-read-all"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Notification.objects.filter(user=self.user, is_read=False).count(), 0)
+
+    def test_unread_count_scoped_to_user(self):
+        # self.user has one unread (n1); another read one must not count.
+        Notification.objects.create(
+            user=self.user, barangay=self.barangay, category="low", title="C", body="b", is_read=True
+        )
+        resp = self.client.get(reverse("notification-unread-count"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["count"], 1)

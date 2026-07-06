@@ -2,15 +2,32 @@ import { Redirect, Tabs } from 'expo-router'
 
 import { useTheme } from '@/common/theme'
 import { Spinner, TabBarIcon } from '@/common/ui'
+import { usePreferences } from '@/features/alerts/hooks/usePreferences'
+import { usePushRegistration } from '@/features/alerts/hooks/usePushRegistration'
+import { useUnreadCount } from '@/features/alerts/hooks/useUnreadCount'
 import { useAuth } from '@/features/auth/context/useAuth'
 
 /** Signed-in tab shell. Redirects to login when there is no session. */
 export default function AppLayout() {
     const { isInitializing, isAuthenticated } = useAuth()
-    const theme = useTheme()
 
     if (isInitializing) return <Spinner />
     if (!isAuthenticated) return <Redirect href="/login" />
+
+    return <SignedInTabs />
+}
+
+/** The authenticated chrome. Split out so its data hooks only run with a session. */
+function SignedInTabs() {
+    const theme = useTheme()
+    const unread = useUnreadCount()
+    const prefs = usePreferences()
+
+    // Register for push whenever the resident has the channel enabled.
+    usePushRegistration(Boolean(prefs.data?.push_enabled))
+
+    const count = unread.data ?? 0
+    const badge = count > 0 ? (count > 9 ? '9+' : count) : undefined
 
     return (
         <Tabs
@@ -35,6 +52,7 @@ export default function AppLayout() {
                 name="alerts"
                 options={{
                     title: 'Alerts',
+                    tabBarBadge: badge,
                     tabBarIcon: ({ focused }) => <TabBarIcon glyph="🔔" focused={focused} />,
                 }}
             />
@@ -52,6 +70,8 @@ export default function AppLayout() {
                     tabBarIcon: ({ focused }) => <TabBarIcon glyph="👤" focused={focused} />,
                 }}
             />
+            {/* Reached from Account; not a tab of its own. */}
+            <Tabs.Screen name="notification-settings" options={{ href: null }} />
         </Tabs>
     )
 }

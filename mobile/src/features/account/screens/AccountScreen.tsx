@@ -1,9 +1,11 @@
+import { router } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
+import { spacing, useTheme } from '@/common/theme'
 import { Button, Card, Screen, Text } from '@/common/ui'
 
+import { unregisterPushDevice } from '@/features/alerts/hooks/usePushRegistration'
 import { useAuth } from '@/features/auth/context/useAuth'
 
 /**
@@ -13,11 +15,13 @@ import { useAuth } from '@/features/auth/context/useAuth'
  */
 export function AccountScreen() {
     const { logout } = useAuth()
+    const theme = useTheme()
     const [signingOut, setSigningOut] = useState(false)
 
     const onSignOut = async () => {
         setSigningOut(true)
         try {
+            await unregisterPushDevice() // stop pushes to this device before clearing the session
             await logout()
         } finally {
             setSigningOut(false)
@@ -33,13 +37,27 @@ export function AccountScreen() {
                 </Text>
             </View>
 
+            <Pressable
+                onPress={() => router.navigate('/notification-settings')}
+                style={({ pressed }) => pressed && styles.pressed}
+            >
+                <Card style={styles.linkCard}>
+                    <View style={styles.linkCopy}>
+                        <Text variant="label">Notification settings</Text>
+                        <Text variant="caption" color="textMuted">
+                            Channels, quiet hours, and which barangay alerts you get.
+                        </Text>
+                    </View>
+                    <Text style={[styles.chevron, { color: theme.colors.textMuted }]}>›</Text>
+                </Card>
+            </Pressable>
+
             <Card style={styles.card}>
                 <Text variant="label" color="textMuted">
                     Coming soon
                 </Text>
                 <Text variant="body">
-                    Editing your profile, permanent address, and notification settings will live
-                    here.
+                    Editing your profile and permanent address will live here.
                 </Text>
             </Card>
 
@@ -57,6 +75,15 @@ export function AccountScreen() {
 
 const styles = StyleSheet.create({
     header: { gap: spacing.xs, marginBottom: spacing.xl },
+    linkCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.lg,
+    },
+    linkCopy: { flex: 1, gap: spacing.xs },
+    chevron: { fontSize: 24 },
+    pressed: { opacity: 0.7 },
     card: { gap: spacing.xs },
     footer: { marginTop: spacing.xxl },
 })
