@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     'flood_events',
     'monitoring',
     'evacuation',
+    'analytics',
 ]
 
 MIDDLEWARE = [

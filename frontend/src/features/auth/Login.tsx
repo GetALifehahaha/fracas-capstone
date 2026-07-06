@@ -34,12 +34,18 @@ const Login = () => {
 
 	const loginAction = async (_: LoginState, formData: FormData): Promise<LoginState> => {
 
-		const parsed = LoginSchema.safeParse(Object.fromEntries(formData));
+		const raw = Object.fromEntries(formData);
+		// React 19 resets uncontrolled fields after a form action; echo the typed
+		// values back so a failed attempt keeps what the operator entered.
+		const values = { username: String(raw.username ?? '') };
+
+		const parsed = LoginSchema.safeParse(raw);
 
 		if (!parsed.success) {
 			const fieldErrors = parsed.error.flatten().fieldErrors;
 
 			return {
+				values,
 				errors: {
 					username: fieldErrors.username?.[0],
 					password: fieldErrors.password?.[0],
@@ -55,7 +61,7 @@ const Login = () => {
 
 			return initialState;
 		} catch (err) {
-			return { errors: {}, formError: humanizeLoginError(err) };
+			return { errors: {}, values, formError: humanizeLoginError(err) };
 		}
 	}
 
@@ -92,32 +98,66 @@ const Login = () => {
 				</Stagger>
 			</div>
 
-			<form className='flex-1 bg-white rounded-2xl flex items-center justify-center flex-col' action={formAction}>
-				<FieldSet className='w-1/3'>
-					<h1>Welcome to FRACAS</h1>
-					<FieldDescription>Login to your FRACAS account</FieldDescription>
+			<form className='flex-1 bg-white rounded-2xl flex items-center justify-center flex-col p-6' action={formAction}>
+				<div className='flex w-full max-w-sm flex-col gap-8'>
+					<div className='flex flex-col gap-3'>
+						{/* Brand mark — also gives mobile a logo, since the left panel is hidden there. */}
+						<span className='flex size-12 items-center justify-center rounded-xl bg-blue-950 md:hidden'>
+							<Waves className='size-6 text-blue-200' />
+						</span>
+						<div>
+							<h1 className='text-2xl font-bold tracking-tight text-blue-950'>Welcome back</h1>
+							<FieldDescription className='mt-1'>Sign in to your FRACAS account to continue.</FieldDescription>
+						</div>
+					</div>
+
+					<FieldSet>
+						{state.formError &&
+							<div role='alert' className='rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive'>
+								{state.formError}
+							</div>
+						}
 						<FieldGroup>
 							<Field>
 								<FieldLabel htmlFor='username'>Username</FieldLabel>
-								<Input id='username' name='username' />
+								<Input
+									id='username'
+									name='username'
+									autoComplete='username'
+									autoFocus
+									defaultValue={state.values?.username}
+									aria-invalid={!!state.errors.username}
+								/>
 								{state.errors.username &&
-									<FieldDescription className='text-red-400'>{state.errors.username}</FieldDescription>
+									<FieldDescription className='text-destructive'>{state.errors.username}</FieldDescription>
 								}
 							</Field>
 							<Field>
-								<FieldLabel htmlFor='password'>Password</FieldLabel>
-								<Input id='password' type='password' name='password'  />
+								<div className='flex items-center justify-between'>
+									<FieldLabel htmlFor='password'>Password</FieldLabel>
+									<Button type='button' variant='link' className='h-auto p-0 text-xs'>Forgot password?</Button>
+								</div>
+								<Input
+									id='password'
+									type='password'
+									name='password'
+									autoComplete='current-password'
+									aria-invalid={!!state.errors.password}
+								/>
 								{state.errors.password &&
-									<FieldDescription className='text-red-400'>{state.errors.password}</FieldDescription>
+									<FieldDescription className='text-destructive'>{state.errors.password}</FieldDescription>
 								}
 							</Field>
 						</FieldGroup>
-						{state.formError &&
-							<FieldDescription className='text-destructive'>{state.formError}</FieldDescription>
-						}
-						<Button size="lg" type='submit' disabled={isPending} className="cursor-pointer">Log In</Button>
-						<Button type='button' className="ml-auto" variant="link">Forgot Password?</Button>
-				</FieldSet>
+						<Button size='lg' type='submit' disabled={isPending} className='w-full cursor-pointer'>
+							{isPending ? 'Signing in…' : 'Log In'}
+						</Button>
+					</FieldSet>
+
+					<FieldDescription className='text-center text-xs'>
+						Authorized personnel — Zamboanga City DRRMO
+					</FieldDescription>
+				</div>
 			</form>
 		</div>
 	)
