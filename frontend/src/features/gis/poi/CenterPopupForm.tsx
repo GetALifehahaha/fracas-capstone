@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
 import { Button } from '@/common/ui/button'
+import PoiDeleteButton from './PoiDeleteButton'
 import { Input } from '@/common/ui/input'
 import { Label } from '@/common/ui/label'
 import { Checkbox } from '@/common/ui/checkbox'
@@ -79,9 +79,12 @@ const CenterPopupForm = ({ initial, saving, onSubmit, onCancel, onDelete }: Prop
                     Cancel
                 </Button>
                 {onDelete && (
-                    <Button type='button' size='sm' variant='ghost' onClick={onDelete} aria-label='Delete'>
-                        <Trash2 className='size-4 text-destructive' />
-                    </Button>
+                    <PoiDeleteButton
+                        kind='evacuation center'
+                        name={values.name}
+                        saving={saving}
+                        onConfirm={onDelete}
+                    />
                 )}
             </div>
         </form>

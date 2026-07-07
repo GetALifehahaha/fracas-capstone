@@ -55,7 +55,7 @@ const UserMenu = ({ name, user }: { name: string; user?: CurrentUser }) => {
                 render={
                     <button
                         type='button'
-                        className='flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition hover:bg-secondary'
+                        className='flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 transition hover:bg-secondary border border-black/10 bg-background'
                     />
                 }
             >
@@ -103,7 +103,6 @@ const UserMenu = ({ name, user }: { name: string; user?: CurrentUser }) => {
 
 const Header = () => {
 
-    const { isOperator } = useAuth()
     const { data: user } = useCurrentUser()
 
     // Fall back to a neutral label until the profile query resolves.
