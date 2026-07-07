@@ -2,19 +2,13 @@ import { Droplets, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Card } from '@/common/ui/card'
 import { Label } from '@/common/ui/label'
-import { Badge } from '@/common/ui/badge'
-import { Progress, ProgressLabel } from '@/common/ui/progress'
 import LoadingCard from '@/common/components/LoadingCard'
+import { cn } from '@/common/utils/utils'
 import type { DamStatus } from '../types/api'
+import { criticalRatio, damStatus } from '../utils/dam'
+import DamRateChart from './DamRateChart'
+import DamTrendChart from './DamTrendChart'
 import SidePanel from './SidePanel'
-
-/** How close the level sits between normal and critical, as a 0–100%. */
-const criticalRatio = (d: DamStatus): number | null => {
-    if (d.current_level == null || d.normal_level == null || d.critical_level == null) return null
-    const span = d.critical_level - d.normal_level
-    if (span <= 0) return null
-    return Math.max(0, Math.min(100, ((d.current_level - d.normal_level) / span) * 100))
-}
 
 const fmt = (v: number | null | undefined): string =>
     v == null ? '—' : `${Math.round(v * 100) / 100}`
@@ -37,6 +31,8 @@ interface Props {
 
 const DamPanel = ({ data, isLoading, onClose }: Props) => {
     const ratio = data ? criticalRatio(data) : null
+    const status = data ? damStatus(data) : null
+    const history = data?.history ?? []
 
     return (
         <SidePanel>
@@ -61,19 +57,71 @@ const DamPanel = ({ data, isLoading, onClose }: Props) => {
                 <p className='text-muted-foreground text-sm'>No readings yet for this dam.</p>
             )}
 
-            {data && data.has_data && (
+            {data && data.has_data && status && (
                 <>
                     <Card className='gap-3'>
                         <div className='flex items-center justify-between'>
                             <Label className='text-muted-foreground text-xs'>Level toward critical</Label>
-                            {data.is_spilling && <Badge variant='destructive'>Spilling</Badge>}
+                            <div className='flex items-center gap-1.5'>
+                                {data.is_spilling && (
+                                    <span
+                                        className='inline-flex h-5 items-center gap-1 rounded-full bg-blue-500/10 px-2 text-xs font-medium text-blue-600 dark:text-blue-400'
+                                        title='Water is spilling over the dam crest (normal during rain).'
+                                    >
+                                        <Droplets className='size-3' />
+                                        Spilling
+                                    </span>
+                                )}
+                                <span
+                                    className={cn(
+                                        'inline-flex h-5 items-center rounded-full px-2 text-xs font-semibold',
+                                        status.badgeClass,
+                                    )}
+                                >
+                                    {status.label}
+                                </span>
+                            </div>
                         </div>
-                        <Progress value={ratio ?? 0}>
-                            <ProgressLabel className='font-bold'>
+                        <div className='flex items-baseline justify-between text-sm'>
+                            <span className='font-bold' style={{ color: status.color }}>
                                 {ratio == null ? 'Level unavailable' : `${ratio.toFixed(0)}%`}
-                            </ProgressLabel>
-                        </Progress>
+                            </span>
+                            {data.current_level != null && (
+                                <span className='text-muted-foreground tabular-nums'>
+                                    {fmt(data.current_level)} m
+                                </span>
+                            )}
+                        </div>
+                        <div className='bg-muted h-1.5 w-full overflow-hidden rounded-full'>
+                            <div
+                                className='h-full rounded-full transition-all'
+                                style={{ width: `${ratio ?? 0}%`, backgroundColor: status.color }}
+                            />
+                        </div>
                     </Card>
+
+                    {history.length >= 2 && (
+                        <>
+                            <Card className='gap-2'>
+                                <Label className='text-muted-foreground text-xs'>
+                                    Water level · last 24h
+                                </Label>
+                                <DamTrendChart
+                                    history={history}
+                                    normalLevel={data.normal_level}
+                                    criticalLevel={data.critical_level}
+                                    color={status.color}
+                                    variant='full'
+                                />
+                            </Card>
+                            <Card className='gap-2'>
+                                <Label className='text-muted-foreground text-xs'>
+                                    Rate of change · last 24h (m/hr)
+                                </Label>
+                                <DamRateChart history={history} variant='full' />
+                            </Card>
+                        </>
+                    )}
 
                     <div className='grid grid-cols-2 gap-3'>
                         <StatTile label='Current level' value={fmt(data.current_level)} unit='m' />

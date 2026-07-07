@@ -46,7 +46,16 @@ export interface BarangayRisk {
     recorded_at: string | null
 }
 
-/** GET /api/dam/status/ — latest Pasonanca reading + thresholds. */
+/** One point in the dam's recent water-level trend (last ~24h). */
+export interface DamHistoryPoint {
+    recorded_at: string
+    water_level: number
+    /** Metres per hour vs the previous reading (null on the first reading). */
+    rate_of_change: number | null
+    is_spilling: boolean
+}
+
+/** GET /api/dam/status/ — latest Pasonanca reading + thresholds + recent trend. */
 export interface DamStatus {
     has_data: boolean
     dam?: string
@@ -60,6 +69,8 @@ export interface DamStatus {
     is_spilling?: boolean
     turbidity?: number | null
     recorded_at?: string
+    /** Last ~24h of readings, oldest→newest, for the trend sparkline/chart. */
+    history?: DamHistoryPoint[]
 }
 
 /** One feature from GET /api/dam/geo/ — the dam point or its river corridor. */
