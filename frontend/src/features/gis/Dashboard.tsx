@@ -3,10 +3,12 @@ import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, PanelRightOpen } from 'lucide-react'
 import { Card } from '@/common/ui/card'
 import ErrorState from '@/common/components/ErrorState'
+import { useAuth } from '@/features/auth/context/useAuth'
 import GISMap from './component/GISMap'
 import RiskCard from './component/RiskCard'
 import Legend from './component/Legend'
 import BarangayPanel from './component/BarangayPanel'
+import PoiLogDialog from './poi/PoiLogDialog'
 import { useRiskMap } from './hooks/useRiskMap'
 
 /** Live viewport width, so panel padding stays correct across resizes. */
@@ -44,8 +46,10 @@ const FreshnessBar = ({
 
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
+    const { isOperator } = useAuth()
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [panelHidden, setPanelHidden] = useState(false)
+    const [logOpen, setLogOpen] = useState(false)
     const viewportWidth = useViewportWidth()
     const cardsVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
@@ -59,7 +63,8 @@ const Dashboard = () => {
 
     return (
         <>
-            <Legend />
+            <Legend isOperator={isOperator} onOpenHistory={() => setLogOpen(true)} />
+            <PoiLogDialog open={logOpen} onOpenChange={setLogOpen} />
 
             {cardsVisible && (
                 <div className='absolute top-20 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>

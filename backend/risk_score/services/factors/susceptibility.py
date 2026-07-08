@@ -21,5 +21,9 @@ class SusceptibilityFactor:
         return FactorResult(
             self.key,
             info["value"],
-            detail={"dominant_level": info["level"], "zone_count": info["zone_count"]},
+            detail={
+                "dominant_level": info["level"],
+                "zone_count": info["zone_count"],
+                "levels": info.get("levels", {}),
+            },
         )

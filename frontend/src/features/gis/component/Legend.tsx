@@ -1,4 +1,6 @@
+import { History } from 'lucide-react'
 import { Card } from '@/common/ui/card'
+import { Button } from '@/common/ui/button'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
 import type { RiskCategory } from '../types/api'
 import { LAYERS } from '../constants/layers'
@@ -6,7 +8,13 @@ import { LAYERS } from '../constants/layers'
 // Low → critical, so the swatch column reads as a white→red ramp.
 const ORDER: RiskCategory[] = ['low', 'medium', 'high', 'critical']
 
-const Legend = () => (
+interface Props {
+    /** Operators get a shortcut to the map edit-history log right here. */
+    isOperator?: boolean
+    onOpenHistory?: () => void
+}
+
+const Legend = ({ isOperator, onOpenHistory }: Props) => (
     <Card size='sm' className='absolute top-20 left-4 z-2 flex w-40 flex-col gap-2 px-2'>
         <div className='flex flex-col gap-1'>
             <h5 className='font-medium'>Hazard</h5>
@@ -32,6 +40,18 @@ const Legend = () => (
                 </span>
             ))}
         </div>
+
+        {isOperator && (
+            <Button
+                size='sm'
+                variant='ghost'
+                className='-mx-2 -mb-1 cursor-pointer justify-start gap-1.5 text-xs'
+                onClick={onOpenHistory}
+            >
+                <History className='size-3.5' />
+                Edit history
+            </Button>
+        )}
     </Card>
 )
 
