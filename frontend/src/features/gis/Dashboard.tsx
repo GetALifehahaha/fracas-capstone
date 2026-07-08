@@ -3,13 +3,13 @@ import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, PanelRightOpen } from 'lucide-react'
 import { Card } from '@/common/ui/card'
 import ErrorState from '@/common/components/ErrorState'
-import { useAuth } from '@/features/auth/context/useAuth'
 import GISMap from './component/GISMap'
 import RiskCard from './component/RiskCard'
 import Legend from './component/Legend'
+import LayersControl from './component/LayersControl'
 import BarangayPanel from './component/BarangayPanel'
-import PoiLogDialog from './poi/PoiLogDialog'
 import { useRiskMap } from './hooks/useRiskMap'
+import { type LayerKey, type LayerVisibility } from './constants/layers'
 
 /** Live viewport width, so panel padding stays correct across resizes. */
 const useViewportWidth = (): number => {
@@ -46,10 +46,9 @@ const FreshnessBar = ({
 
 const Dashboard = () => {
     const { features, groups, computedAt, degradedCount, isLoading, isError, refetch } = useRiskMap()
-    const { isOperator } = useAuth()
     const [selectedId, setSelectedId] = useState<number | null>(null)
     const [panelHidden, setPanelHidden] = useState(false)
-    const [logOpen, setLogOpen] = useState(false)
+    const [layers, setLayers] = useState<LayerVisibility>({ hazard: true, evacuation: true })
     const viewportWidth = useViewportWidth()
     const cardsVisible = selectedId == null
     // The barangay panel can be hidden while its barangay stays focused on the map.
@@ -61,10 +60,16 @@ const Dashboard = () => {
         setPanelHidden(false) // a fresh selection always shows the panel
     }, [])
 
+    const toggleLayer = (key: LayerKey) => setLayers((l) => ({ ...l, [key]: !l[key] }))
+
     return (
         <>
-            <Legend isOperator={isOperator} onOpenHistory={() => setLogOpen(true)} />
-            <PoiLogDialog open={logOpen} onOpenChange={setLogOpen} />
+            <div className='absolute top-20 left-4 z-2 flex items-start gap-2'>
+                <Legend />
+                <div className='flex h-fit items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
+                    <LayersControl layers={layers} onToggle={toggleLayer} />
+                </div>
+            </div>
 
             {cardsVisible && (
                 <div className='absolute top-20 right-4 z-2 grid w-1/4 grid-cols-2 gap-2'>
@@ -101,6 +106,7 @@ const Dashboard = () => {
                 selectedId={selectedId}
                 onSelect={handleSelect}
                 panelWidth={panelWidth}
+                layers={layers}
             />
 
             {barangayPanelVisible && selectedId != null && (

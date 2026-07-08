@@ -6,15 +6,15 @@ import BarangayChoropleth from './BarangayChoropleth'
 import BarangayTooltip from './BarangayTooltip'
 import HazardZoneLayer from './HazardZoneLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
-import LayersControl from './LayersControl'
 import BarangaySearch from './BarangaySearch'
-import { type LayerKey, type LayerVisibility } from '../constants/layers'
+import { type LayerVisibility } from '../constants/layers'
 
 interface GISMapProps {
     data: RiskFeatureCollection | null
     selectedId: number | null
     onSelect: (id: number | null) => void
     panelWidth: number
+    layers: LayerVisibility
 }
 
 /** Centre of a barangay's bounding box, to anchor its pinned tooltip. */
@@ -26,13 +26,8 @@ const centroidOf = (
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
-const GISMap = ({ data, selectedId, onSelect, panelWidth }: GISMapProps) => {
+const GISMap = ({ data, selectedId, onSelect, panelWidth, layers }: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
-    const [layers, setLayers] = useState<LayerVisibility>({
-        hazard: true,
-        evacuation: true,
-    })
-    const toggleLayer = (key: LayerKey) => setLayers((l) => ({ ...l, [key]: !l[key] }))
 
     const pinnedCentroid =
         data && selectedId != null ? centroidOf(data, selectedId) : null
@@ -43,12 +38,9 @@ const GISMap = ({ data, selectedId, onSelect, panelWidth }: GISMapProps) => {
 
     return (
         <div className='relative h-full w-full overflow-hidden'>
-            {/* Top toolbar: barangay search + layer toggles, centered above the map. */}
-            <div className='absolute top-20 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2'>
+            {/* Barangay search, centered above the map. */}
+            <div className='absolute top-20 left-1/2 z-10 -translate-x-1/2'>
                 <BarangaySearch data={data} onSelect={onSelect} />
-                <div className='flex items-center gap-1 rounded-full border bg-background/95 px-2 py-1.5 shadow-md backdrop-blur'>
-                    <LayersControl layers={layers} onToggle={toggleLayer} />
-                </div>
             </div>
 
             <Map center={[122.07, 6.92]} zoom={11} theme='light'>
