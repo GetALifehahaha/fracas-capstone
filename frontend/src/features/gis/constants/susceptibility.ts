@@ -43,3 +43,11 @@ export const fillColorExpression: ExpressionSpecification = [
     'very_high', SUSCEPTIBILITY_COLORS.very_high,
     SUSCEPTIBILITY_COLORS.very_low,
 ]
+
+export const SUSCEPTIBILITIES = [
+    { key: SUSCEPTIBILITY_LABELS.very_low, label: SUSCEPTIBILITY_LABELS.very_low, color: SUSCEPTIBILITY_COLORS.very_low },
+    { key: SUSCEPTIBILITY_LABELS.low, label: SUSCEPTIBILITY_LABELS.low, color: SUSCEPTIBILITY_COLORS.low },
+    { key: SUSCEPTIBILITY_LABELS.moderate, label: SUSCEPTIBILITY_LABELS.moderate, color: SUSCEPTIBILITY_COLORS.moderate },
+    { key: SUSCEPTIBILITY_LABELS.high, label: SUSCEPTIBILITY_LABELS.high, color: SUSCEPTIBILITY_COLORS.high },
+    { key: SUSCEPTIBILITY_LABELS.very_high, label: SUSCEPTIBILITY_LABELS.very_high, color: SUSCEPTIBILITY_COLORS.very_high },
+]

@@ -1,14 +1,21 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_gis.fields import GeometryField
 from .models import (
     Barangay,
     BarangaySusceptibility,
 )
 
+# ~0.1 m at Zamboanga's latitude — well below any meaningful map precision, but
+# clamps the ~15-digit float coordinates GeoDjango emits by default, roughly
+# halving every GeoJSON map payload at zero visible cost.
+GEOJSON_PRECISION = 6
+
 class BarangayListSerializer(GeoFeatureModelSerializer):
     # Annotated on the queryset (see BarangayListView); count of residents
     # subscribed to this barangay's alerts.
     subscriber_count = serializers.IntegerField(read_only=True)
+    boundary = GeometryField(precision=GEOJSON_PRECISION)
 
     class Meta:
         model = Barangay
@@ -30,6 +37,8 @@ class BarangayPublicSerializer(GeoFeatureModelSerializer):
     `subscriber_count` (the one semi-private field) so nothing sensitive is
     exposed anonymously; barangay boundaries themselves are public gov data."""
 
+    boundary = GeometryField(precision=GEOJSON_PRECISION)
+
     class Meta:
         model = Barangay
         geo_field = "boundary"
@@ -42,6 +51,8 @@ class HazardZoneSerializer(GeoFeatureModelSerializer):
     for MapLibre. See `barangays.services.dominant_susceptibility_by_barangay` for
     the worst-case-per-barangay aggregate the risk engine actually scores on —
     this is the full zone geometry for the map layer."""
+
+    geom_simplified = GeometryField(precision=GEOJSON_PRECISION)
 
     class Meta:
         model = BarangaySusceptibility

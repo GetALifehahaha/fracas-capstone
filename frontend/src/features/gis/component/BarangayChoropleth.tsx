@@ -81,7 +81,15 @@ const BarangayChoropleth = ({
     // Create source + layers once the style is ready.
     useEffect(() => {
         if (!map || !isLoaded) return
-        const beforeId = firstSymbolLayerId(map)
+        // Anchor below the hazard fill when it already exists, so the hazard
+        // zones always stay on top regardless of which of the two independently
+        // loaded layers wins the network race (else the choropleth's white wash
+        // lands on top and washes the susceptibility colours out). When the
+        // hazard layer isn't up yet it anchors to the labels and HazardZoneLayer,
+        // added later, lands on top on its own.
+        const beforeId = map.getLayer('hazard-zone-fill')
+            ? 'hazard-zone-fill'
+            : firstSymbolLayerId(map)
 
         map.addSource(SOURCE, { type: 'geojson', data, promoteId: 'id' })
 

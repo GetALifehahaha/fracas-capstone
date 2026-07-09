@@ -52,6 +52,13 @@ class BroadcastView(APIView):
     permission_classes = [IsOperator]
 
     def post(self, request):
+        from monitoring.models import OperationalToggles
+
+        if not OperationalToggles.cached().broadcast_enabled:
+            return Response(
+                {"detail": "Broadcasts are currently disabled."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = BroadcastSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

@@ -54,9 +54,15 @@ class RiskConfigViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def activate(self, request, pk=None):
+        from audit.services import log_change
+
         config = self.get_object()
         config.is_active = True
         config.save()
+        log_change(
+            request.user, "risk-config",
+            action="activated", field="active_config", new_value=f"{config.name} (#{config.pk})",
+        )
         return Response(self.get_serializer(config).data)
 
 

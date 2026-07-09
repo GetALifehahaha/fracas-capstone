@@ -17,6 +17,7 @@ from .registration_views import (
     RegisterStartView,
     RegisterVerifyView,
 )
+from .settings_views import RegistrationPolicyView
 
 router = DefaultRouter()
 router.register(r"account/subscriptions", SubscriptionViewSet, basename="subscription")
@@ -35,4 +36,5 @@ urlpatterns = [
     path("account/preferences/", NotificationPreferenceView.as_view(), name="notification-preferences"),
     path("account/changes/", AccountChangeListView.as_view(), name="account-changes"),
     path("operators/", OperatorListView.as_view(), name="operator-list"),
+    path("admin/settings/registration/", RegistrationPolicyView.as_view(), name="admin-settings-registration"),
 ] + router.urls

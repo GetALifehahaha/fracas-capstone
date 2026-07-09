@@ -8,19 +8,13 @@ Only CRITICAL triggers resident alerts; the AlertState row is the memory that
 keeps us from re-notifying every 15 minutes.
 """
 
-from datetime import timedelta
-
 from django.utils import timezone
 
 from alert.constants import EventKind, EventSource
-from alert.models import AlertEvent, AlertState
-from risk_score.constants import RiskCategory
+from alert.models import AlertEvent, AlertState, AlertingPolicy
 from risk_score.models import RiskScore
 
 from .dispatcher import dispatch
-
-ALERT_LEVEL = RiskCategory.CRITICAL
-RENOTIFY_INTERVAL = timedelta(hours=1)
 
 
 def _latest_scores():
@@ -32,32 +26,33 @@ def _latest_scores():
 
 
 def evaluate() -> dict:
+    policy = AlertingPolicy.cached()
     notified = 0
     for score in _latest_scores():
         state, _ = AlertState.objects.get_or_create(barangay=score.barangay)
-        if _process(state, score):
+        if _process(state, score, policy):
             notified += 1
     return {"notified": notified}
 
 
-def _transition_kind(state: AlertState, score: RiskScore, now) -> str | None:
+def _transition_kind(state: AlertState, score: RiskScore, now, policy) -> str | None:
     """The alert transition this cycle warrants, or None if nothing to notify."""
-    was_critical = state.level == ALERT_LEVEL
-    is_critical = score.category == ALERT_LEVEL
+    was_triggered = policy.triggers(state.level)
+    is_triggered = policy.triggers(score.category)
 
-    if is_critical and not was_critical:
+    if is_triggered and not was_triggered:
         return EventKind.ENTERED
-    if is_critical and was_critical:
-        due = state.last_notified_at is None or (now - state.last_notified_at) >= RENOTIFY_INTERVAL
+    if is_triggered and was_triggered:
+        due = state.last_notified_at is None or (now - state.last_notified_at) >= policy.renotify_interval
         return EventKind.RENOTIFY if due else None
-    if was_critical and not is_critical:
-        return EventKind.ALL_CLEAR
+    if was_triggered and not is_triggered:
+        return EventKind.ALL_CLEAR if policy.send_all_clear else None
     return None
 
 
-def _process(state: AlertState, score: RiskScore) -> bool:
+def _process(state: AlertState, score: RiskScore, policy) -> bool:
     now = timezone.now()
-    kind = _transition_kind(state, score, now)
+    kind = _transition_kind(state, score, now, policy)
 
     if score.category != state.level:
         state.level = score.category

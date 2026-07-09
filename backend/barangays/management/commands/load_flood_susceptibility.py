@@ -25,6 +25,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from barangays.constants import SusceptibilityLevel, UTM_51N
+from barangays.geometry import rebuild_simplified_geometry
 from barangays.models import Barangay, BarangaySusceptibility
 
 DEFAULT_SHAPEFILE = Path(settings.BASE_DIR) / "zbga-city-flood-shapefile" / "ZAM_FLOOD.shp"
@@ -138,11 +139,17 @@ class Command(BaseCommand):
         with transaction.atomic():
             deleted, _ = BarangaySusceptibility.objects.all().delete()
             BarangaySusceptibility.objects.bulk_create(rows)
+            # Overwrite the per-row simplify above with the aggressive display
+            # generalization (dissolve + sliver-drop + grid-snap), so the map
+            # payload is ~4x smaller. Kept in `barangays.geometry` so the
+            # rebuild_hazard_geometry command can re-tune it without a reload.
+            rebuilt = rebuild_simplified_geometry()
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Loaded {len(rows)} BarangaySusceptibility row(s) (replaced {deleted} existing). "
                 f"Skipped {skipped_slivers} sliver(s) < {MIN_AREA_SQM}m^2. "
-                f"{invalid_fixed} source class(es) needed make_valid()."
+                f"{invalid_fixed} source class(es) needed make_valid(). "
+                f"Rebuilt display geometry for {rebuilt} zone(s)."
             )
         )
