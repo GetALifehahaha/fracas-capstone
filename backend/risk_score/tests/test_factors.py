@@ -38,11 +38,12 @@ class RainfallFactorTests(SimpleTestCase):
 class SusceptibilityFactorTests(SimpleTestCase):
     def test_known_level_returns_value_and_detail(self):
         barangay = SimpleNamespace(id=1)
-        ctx = context({1: {"level": "high", "value": 0.8, "zone_count": 2}})
+        levels = {"high": {"area_sqm": 2.0, "share": 1.0}}
+        ctx = context({1: {"level": "high", "value": 0.8, "zone_count": 2, "levels": levels}})
         result = SusceptibilityFactor().evaluate(FactorInput(barangay, None, ctx))
         self.assertTrue(result.available)
         self.assertAlmostEqual(result.value, 0.8)
-        self.assertEqual(result.detail, {"dominant_level": "high", "zone_count": 2})
+        self.assertEqual(result.detail, {"dominant_level": "high", "zone_count": 2, "levels": levels})
 
     def test_no_data_unavailable(self):
         barangay = SimpleNamespace(id=1)

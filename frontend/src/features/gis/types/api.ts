@@ -27,6 +27,19 @@ export interface RiskFactorBreakdown {
     detail: Record<string, unknown>
 }
 
+/** A susceptibility level's share of a barangay's total zoned area. */
+export interface SusceptibilityLevelShare {
+    area_sqm: number
+    share: number // 0..1
+}
+
+/** Shape of `RiskFactorBreakdown['detail']` for the `susceptibility` factor. */
+export interface SusceptibilityDetail {
+    dominant_level: SusceptibilityLevel
+    zone_count: number
+    levels?: Partial<Record<SusceptibilityLevel, SusceptibilityLevelShare>>
+}
+
 /** GET /api/risk/barangays/:id/ — full detail for the side panel. */
 export interface BarangayRisk {
     id: number

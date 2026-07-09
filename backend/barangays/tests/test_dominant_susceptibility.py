@@ -34,6 +34,12 @@ class DominantSusceptibilityTests(TestCase):
         self.assertEqual(result[barangay.id]["level"], "very_high")
         self.assertEqual(result[barangay.id]["value"], 1.0)
         self.assertEqual(result[barangay.id]["zone_count"], 3)
+        # Each zone is 1.0 sqm here, so an even three-way split.
+        levels = result[barangay.id]["levels"]
+        self.assertEqual(list(levels), ["very_high", "moderate", "low"])  # most severe first
+        self.assertAlmostEqual(levels["very_high"]["share"], 1 / 3)
+        self.assertAlmostEqual(levels["moderate"]["share"], 1 / 3)
+        self.assertAlmostEqual(levels["low"]["share"], 1 / 3)
 
     def test_single_level_is_that_level(self):
         barangay = make_barangay("Single", "S1")
@@ -41,7 +47,15 @@ class DominantSusceptibilityTests(TestCase):
 
         result = dominant_susceptibility_by_barangay()
 
-        self.assertEqual(result[barangay.id], {"level": "moderate", "value": 0.6, "zone_count": 1})
+        self.assertEqual(
+            result[barangay.id],
+            {
+                "level": "moderate",
+                "value": 0.6,
+                "zone_count": 1,
+                "levels": {"moderate": {"area_sqm": 1.0, "share": 1.0}},
+            },
+        )
 
     def test_no_zones_is_absent_not_zero(self):
         barangay = make_barangay("Empty", "E1")

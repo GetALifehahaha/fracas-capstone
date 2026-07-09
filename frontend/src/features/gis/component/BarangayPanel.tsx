@@ -19,7 +19,8 @@ import { CartesianGrid, Line, LineChart, XAxis } from 'recharts'
 import capitalize from '@/common/utils/capitalize'
 import { useBarangayRisk } from '../hooks/useBarangayRisk'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
-import type { BarangayRisk, RiskFactorBreakdown } from '../types/api'
+import { SUSCEPTIBILITY_COLORS, SUSCEPTIBILITY_LABELS, SUSCEPTIBILITY_ORDER } from '../constants/susceptibility'
+import type { BarangayRisk, RiskFactorBreakdown, SusceptibilityDetail } from '../types/api'
 import { Button } from '@/common/ui/button'
 import LoadingCard from '@/common/components/LoadingCard'
 import ErrorState from '@/common/components/ErrorState'
@@ -177,6 +178,62 @@ const Conditions = ({ data }: { data: BarangayRisk }) => {
     )
 }
 
+/**
+ * A susceptibility factor's row when the barangay spans more than one hazard
+ * zone type. The plain `FactorRow` only surfaces the worst-case zone (the
+ * value the score actually uses); this shows how much of the barangay falls
+ * into each level so the worst-case pick doesn't read as arbitrary.
+ */
+const SusceptibilityBreakdown = ({
+    factor,
+    effectiveWeight,
+}: {
+    factor: RiskFactorBreakdown
+    effectiveWeight: number
+}) => {
+    const detail = factor.detail as unknown as SusceptibilityDetail
+    const levels = SUSCEPTIBILITY_ORDER.filter((level) => detail.levels?.[level])
+        .map((level) => ({ level, share: detail.levels![level]!.share }))
+        .reverse() // most severe first
+
+    return (
+        <div className='flex flex-col gap-1.5'>
+            <div className='flex items-center justify-between text-xs'>
+                <span className='flex items-center gap-2'>
+                    <span className='font-medium'>Flood susceptibility</span>
+                    <span className='text-muted-foreground'>{Math.round(effectiveWeight * 100)}% weight</span>
+                </span>
+                <span className='font-medium tabular-nums'>{Math.round(factor.value * 100)}</span>
+            </div>
+            <p className='text-muted-foreground text-xs'>
+                Spans {levels.length} hazard zones — scored on the worst-case zone.
+            </p>
+            <div className='flex h-1.5 w-full overflow-hidden rounded-full'>
+                {levels.map(({ level, share }) => (
+                    <div
+                        key={level}
+                        style={{ width: `${share * 100}%`, backgroundColor: SUSCEPTIBILITY_COLORS[level] }}
+                    />
+                ))}
+            </div>
+            <div className='flex flex-col gap-1'>
+                {levels.map(({ level, share }) => (
+                    <div key={level} className='flex items-center justify-between text-xs'>
+                        <span className='flex items-center gap-1.5'>
+                            <span
+                                className='aspect-square w-2 rounded-full ring-1 ring-foreground/10'
+                                style={{ backgroundColor: SUSCEPTIBILITY_COLORS[level] }}
+                            />
+                            {SUSCEPTIBILITY_LABELS[level]}
+                        </span>
+                        <span className='text-muted-foreground tabular-nums'>{Math.round(share * 100)}%</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
 const Breakdown = ({ breakdown }: { breakdown: Record<string, RiskFactorBreakdown> }) => {
     const entries = Object.entries(breakdown)
     const availableWeight = entries.reduce(
@@ -191,14 +248,19 @@ const Breakdown = ({ breakdown }: { breakdown: Record<string, RiskFactorBreakdow
                 <p className='text-muted-foreground text-xs'>Each input scored 0–100, blended by weight.</p>
             </div>
             <div className='flex flex-col gap-3'>
-                {entries.map(([name, factor]) => (
-                    <FactorRow
-                        key={name}
-                        name={name}
-                        factor={factor}
-                        effectiveWeight={availableWeight > 0 ? factor.raw_weight / availableWeight : 0}
-                    />
-                ))}
+                {entries.map(([name, factor]) => {
+                    const effectiveWeight = availableWeight > 0 ? factor.raw_weight / availableWeight : 0
+                    const zoneCount =
+                        name === 'susceptibility' && factor.available
+                            ? Object.keys((factor.detail as unknown as SusceptibilityDetail).levels ?? {}).length
+                            : 0
+
+                    return zoneCount > 1 ? (
+                        <SusceptibilityBreakdown key={name} factor={factor} effectiveWeight={effectiveWeight} />
+                    ) : (
+                        <FactorRow key={name} name={name} factor={factor} effectiveWeight={effectiveWeight} />
+                    )
+                })}
             </div>
         </Card>
     )
@@ -222,7 +284,21 @@ const RainfallTrend = ({ data }: { data: BarangayRisk }) => {
                         <LineChart accessibilityLayer data={chartData} margin={{ top: 12, left: 2, right: 12 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey='name' tickLine={false} axisLine={false} tickMargin={8} />
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                            <ChartTooltip
+                                cursor={false}
+                                content={
+                                    <ChartTooltipContent
+                                        formatter={(value, name) => (
+                                            <div className='flex w-full items-center justify-between gap-3'>
+                                                <span className='text-muted-foreground capitalize'>{name}</span>
+                                                <span className='font-mono font-medium tabular-nums'>
+                                                    {value} mm/hr
+                                                </span>
+                                            </div>
+                                        )}
+                                    />
+                                }
+                            />
                             <Line
                                 dataKey='rainfall'
                                 type='natural'
