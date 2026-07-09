@@ -11,8 +11,6 @@ from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 
-from monitoring.constants import RAINFALL_RETENTION_DAYS, RISK_SCORE_RETENTION_DAYS
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,12 +19,15 @@ def cleanup_old_data() -> dict:
     from rainfall_fetch.models import Rainfall
     from risk_score.models import RiskScore
 
+    from monitoring.models import RetentionPolicy
+
+    policy = RetentionPolicy.cached()
     now = timezone.now()
     rain_deleted, _ = Rainfall.objects.filter(
-        recorded_at__lt=now - timedelta(days=RAINFALL_RETENTION_DAYS)
+        recorded_at__lt=now - timedelta(days=policy.rainfall_retention_days)
     ).delete()
     score_deleted, _ = RiskScore.objects.filter(
-        computed_at__lt=now - timedelta(days=RISK_SCORE_RETENTION_DAYS)
+        computed_at__lt=now - timedelta(days=policy.risk_score_retention_days)
     ).delete()
 
     logger.info(

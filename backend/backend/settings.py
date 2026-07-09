@@ -88,6 +88,7 @@ INSTALLED_APPS = [
     "corsheaders",
 
     # APPS
+    'audit',
     'rainfall_fetch',
     'barangays',
     'alert',

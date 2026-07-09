@@ -1,4 +1,5 @@
 import type { AdminUserFilters } from '../types/user'
+import type { SettingsGroup } from '../types/settings'
 
 /** Centralized query keys for the admin feature. */
 export const adminKeys = {
@@ -8,4 +9,7 @@ export const adminKeys = {
     riskConfigs: () => ['admin', 'risk-configs'] as const,
     validationRuns: (page: number) => ['admin', 'validation-runs', page] as const,
     validationRun: (id: number) => ['admin', 'validation-runs', 'detail', id] as const,
+    systemStatus: () => ['admin', 'system', 'status'] as const,
+    autoDetect: () => ['admin', 'system', 'auto-detect'] as const,
+    settings: (group: SettingsGroup) => ['admin', 'settings', group] as const,
 }

@@ -29,6 +29,13 @@ class _AnonView(APIView):
 
 class RegisterStartView(_AnonView):
     def post(self, request):
+        from .models import RegistrationPolicy
+
+        if not RegistrationPolicy.cached().self_registration_enabled:
+            return Response(
+                {"detail": "Self-registration is currently disabled."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         serializer = RegisterStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:

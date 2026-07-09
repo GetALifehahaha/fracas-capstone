@@ -26,8 +26,11 @@ def generate_and_send(user) -> None:
     if user.phone_otps.filter(created_at__gte=timezone.now() - RESEND_COOLDOWN).exists():
         raise OTPError("Please wait a moment before requesting another code.")
 
+    from users.models import RegistrationPolicy
+
     code = f"{secrets.randbelow(1_000_000):06d}"
-    PhoneOTP.objects.create(user=user, code=code, expires_at=timezone.now() + OTP_TTL)
+    ttl = RegistrationPolicy.cached().otp_ttl
+    PhoneOTP.objects.create(user=user, code=code, expires_at=timezone.now() + ttl)
     get_sms_provider().send(user.phone_number, f"Your FRACAS verification code is {code}")
 
 
