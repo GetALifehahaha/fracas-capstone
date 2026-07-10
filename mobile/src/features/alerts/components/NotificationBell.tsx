@@ -1,9 +1,10 @@
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { radius, spacing, useTheme } from '@/common/theme'
-import { Button, Text } from '@/common/ui'
+import { Button, Icon, Text } from '@/common/ui'
 
 import { useNotifications } from '../hooks/useNotifications'
 import { useUnreadCount } from '../hooks/useUnreadCount'
@@ -20,6 +21,7 @@ const RECENT_LIMIT = 5
  */
 export function NotificationBell() {
     const theme = useTheme()
+    const insets = useSafeAreaInsets()
     const unread = useUnreadCount()
     const { notifications } = useNotifications()
 
@@ -47,7 +49,7 @@ export function NotificationBell() {
                 style={styles.bell}
                 accessibilityLabel={`Notifications${count ? `, ${count} unread` : ''}`}
             >
-                <Text style={styles.glyph}>🔔</Text>
+                <Icon name="notifications-outline" size={24} color={theme.colors.text} />
                 {count > 0 ? (
                     <View style={[styles.badge, { backgroundColor: theme.colors.danger }]}>
                         <Text style={[styles.badgeText, { color: theme.colors.onDanger }]}>
@@ -64,7 +66,7 @@ export function NotificationBell() {
                 presentationStyle="pageSheet"
             >
                 <View style={[styles.sheet, { backgroundColor: theme.colors.bg }]}>
-                    <View style={styles.header}>
+                    <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
                         <Text variant="title">Recent alerts</Text>
                         <Button
                             label="Close"
@@ -99,7 +101,6 @@ export function NotificationBell() {
 
 const styles = StyleSheet.create({
     bell: { padding: spacing.xs },
-    glyph: { fontSize: 22 },
     badge: {
         position: 'absolute',
         top: 0,

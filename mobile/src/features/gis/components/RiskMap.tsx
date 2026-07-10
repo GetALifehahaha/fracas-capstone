@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import type { NativeSyntheticEvent } from 'react-native'
 import {
     Camera,
@@ -12,6 +12,7 @@ import {
 } from '@maplibre/maplibre-react-native'
 
 import { useTheme } from '@/common/theme'
+import { Icon } from '@/common/ui'
 
 import { MAP_CENTER, MAP_PADDING, MAP_ZOOM, mapStyleFor } from '../constants/mapStyle'
 import { fillColorExpression } from '../constants/risk'
@@ -29,7 +30,28 @@ interface Props {
     onSelect: (id: number | null) => void
     /** Show the blue GPS dot (only once location permission is granted). */
     showUser: boolean
+    /** Allow pan/zoom gestures. Off on the status card (a fixed overview), on in the expanded view. */
+    interactive?: boolean
+    /** When set, renders an expand affordance that opens the draggable full map. */
+    onExpand?: () => void
+    /** Fill the parent instead of the fixed preview height (used by the expanded view). */
+    fill?: boolean
+    /**
+     * Recenter the camera on this point. A fresh object flies the map there — used
+     * to focus the resident's location or a card's barangay. Null keeps the default
+     * city framing. Overrides the initial fit-to-city when set on mount.
+     */
+    focus?: MapFocus | null
 }
+
+/** A camera target: where to center and how far to zoom in. */
+export interface MapFocus {
+    center: [number, number]
+    zoom?: number
+}
+
+/** Neighborhood-level zoom used when focusing a single location. */
+const FOCUS_ZOOM = 14
 
 /** No barangay matches this id, so the "selected" outline hides when unset. */
 const NO_SELECTION = -1
@@ -42,8 +64,18 @@ const REFUGE_COLOR = '#0f766e' // teal — a "safe place" hue outside the red ra
  * barangay selects it — the parent opens the same breakdown modal the cards do.
  * MapLibre needs a custom dev client; this screen cannot run in Expo Go.
  */
-export function RiskMap({ data, centers, selectedId, onSelect, showUser }: Props) {
-    const { scheme } = useTheme()
+export function RiskMap({
+    data,
+    centers,
+    selectedId,
+    onSelect,
+    showUser,
+    interactive = true,
+    onExpand,
+    fill = false,
+    focus = null,
+}: Props) {
+    const { colors, scheme } = useTheme()
     const cameraRef = useRef<CameraRef>(null)
     const [loaded, setLoaded] = useState(false)
     const fittedRef = useRef(false)
@@ -59,9 +91,18 @@ export function RiskMap({ data, centers, selectedId, onSelect, showUser }: Props
         fittedRef.current = true
     }, [data])
 
+    // Default framing: fit the whole city — but only when no explicit focus is
+    // requested (the expanded map opens focused on the resident's location).
     useEffect(() => {
-        if (loaded) fitToData()
-    }, [loaded, fitToData])
+        if (loaded && !focus) fitToData()
+    }, [loaded, focus, fitToData])
+
+    // Fly to a requested point whenever it changes (card "center map here"
+    // buttons pass a fresh object each tap, so repeat taps re-focus).
+    useEffect(() => {
+        if (!loaded || !focus) return
+        cameraRef.current?.flyTo({ center: focus.center, zoom: focus.zoom ?? FOCUS_ZOOM, duration: 600 })
+    }, [loaded, focus])
 
     const handlePress = (event: NativeSyntheticEvent<PressEventWithFeatures>) => {
         const id = event.nativeEvent.features?.[0]?.properties?.id
@@ -69,11 +110,17 @@ export function RiskMap({ data, centers, selectedId, onSelect, showUser }: Props
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, fill ? styles.fill : styles.preview]}>
             <Map
                 style={styles.map}
                 mapStyle={mapStyleFor(scheme)}
                 onDidFinishLoadingMap={() => setLoaded(true)}
+                dragPan={interactive}
+                touchZoom={interactive}
+                doubleTapZoom={interactive}
+                doubleTapHoldZoom={interactive}
+                touchRotate={interactive}
+                touchPitch={interactive}
             >
                 <Camera
                     ref={cameraRef}
@@ -121,11 +168,41 @@ export function RiskMap({ data, centers, selectedId, onSelect, showUser }: Props
 
                 {showUser ? <UserLocation animated /> : null}
             </Map>
+
+            {onExpand ? (
+                <Pressable
+                    onPress={onExpand}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Expand map"
+                    style={({ pressed }) => [
+                        styles.expand,
+                        { backgroundColor: colors.bg, borderColor: colors.border },
+                        pressed && styles.pressed,
+                    ]}
+                >
+                    <Icon name="expand-outline" size={18} color={colors.text} />
+                </Pressable>
+            ) : null}
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: { height: 280, borderRadius: 16, overflow: 'hidden' },
+    container: { borderRadius: 16, overflow: 'hidden' },
+    preview: { height: 280 },
+    fill: { flex: 1, borderRadius: 0 },
     map: { flex: 1 },
+    expand: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pressed: { opacity: 0.6 },
 })

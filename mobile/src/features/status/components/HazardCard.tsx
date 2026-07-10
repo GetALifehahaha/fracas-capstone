@@ -1,25 +1,38 @@
 import { Pressable, StyleSheet, View } from 'react-native'
 
-import { spacing } from '@/common/theme'
-import { Badge, Card, Text } from '@/common/ui'
-import { CATEGORY_LABELS, RISK_COLORS } from '@/features/gis/constants/risk'
+import { spacing, useTheme } from '@/common/theme'
+import { Card, Icon, Text } from '@/common/ui'
+import { CATEGORY_LABELS } from '@/features/gis/constants/risk'
 import type { RiskCategory, RiskFeature } from '@/features/gis/types'
 
+/** Legible, semantic hues per category (the RISK_COLORS ramp is too pale as text). */
+const SCORE_COLOR: Record<RiskCategory, string> = {
+    low: '#1a7f5a',
+    medium: '#c9820a',
+    high: '#dd4b4b',
+    critical: '#b01212',
+}
+
 interface Props {
-    /** Context label, e.g. "You are here" or "Home". */
+    /** Context label, e.g. "Current location" or "Home". */
     label: string
     feature: RiskFeature | null
     /** Shown in place of the score when there is no feature to display. */
     emptyMessage: string
+    /** When set, shows a "View Hazard Detail" button that opens the breakdown. */
     onPress?: (id: number) => void
+    /** When set, shows a "Center map here" button that focuses the map on this barangay. */
+    onFocus?: () => void
 }
 
-/** Deep-red categories need light text; the pale ones read better on dark. */
-const badgeTextColor = (category: RiskCategory): string =>
-    category === 'high' || category === 'critical' ? '#ffffff' : '#3f0a0a'
+/**
+ * A barangay's hazard at a glance: the location on the left, a circular score
+ * gauge on the right, and optional actions (center the map, open the full
+ * breakdown) beneath.
+ */
+export function HazardCard({ label, feature, emptyMessage, onPress, onFocus }: Props) {
+    const theme = useTheme()
 
-/** A barangay's hazard at a glance: score / 100 + category badge. Tap for detail. */
-export function HazardCard({ label, feature, emptyMessage, onPress }: Props) {
     if (!feature) {
         return (
             <Card style={styles.card}>
@@ -34,51 +47,110 @@ export function HazardCard({ label, feature, emptyMessage, onPress }: Props) {
     }
 
     const { id, name, category, score, is_degraded } = feature.properties
+    const scoreColor = category ? SCORE_COLOR[category] : theme.colors.textMuted
 
-    const body = (
+    return (
         <Card style={styles.card}>
-            <View style={styles.header}>
-                <View style={styles.heading}>
+            <View style={styles.topRow}>
+                <View style={styles.leftCol}>
                     <Text variant="label" color="textMuted">
                         {label}
                     </Text>
                     <Text variant="subtitle">{name}</Text>
+                    {is_degraded ? (
+                        <Text variant="caption" color="danger">
+                            Degraded — some inputs were stale; weights were redistributed.
+                        </Text>
+                    ) : null}
                 </View>
-                <Badge
-                    label={category ? CATEGORY_LABELS[category] : 'No data'}
-                    color={category ? RISK_COLORS[category] : undefined}
-                    textColor={category ? badgeTextColor(category) : undefined}
-                />
+
+                <View style={styles.rightCol}>
+                    <View style={styles.scoreRow}>
+                        <Text style={[styles.score, { color: scoreColor }]}>
+                            {score == null ? '—' : Math.round(score)}
+                        </Text>
+                        <Text variant="caption" color="textMuted">
+                            /100
+                        </Text>
+                    </View>
+                    <Text style={[styles.category, { color: scoreColor }]}>
+                        {category ? CATEGORY_LABELS[category] : 'No data'}
+                    </Text>
+                    <Text variant="caption" color="textMuted">
+                        Hazard Risk Score
+                    </Text>
+                </View>
             </View>
 
-            <View style={styles.scoreRow}>
-                <Text style={styles.score}>{score == null ? '—' : Math.round(score)}</Text>
-                <Text variant="caption" color="textMuted">
-                    / 100
-                </Text>
-            </View>
+            {onFocus ? (
+                <Pressable
+                    onPress={onFocus}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Center map on ${name}`}
+                    style={({ pressed }) => [
+                        styles.focusBtn,
+                        { borderColor: theme.colors.border },
+                        pressed && styles.pressed,
+                    ]}
+                >
+                    <Icon name="locate" size={16} color={theme.colors.primary} />
+                    <Text variant="label" color="primary">
+                        Center map here
+                    </Text>
+                </Pressable>
+            ) : null}
 
-            {is_degraded ? (
-                <Text variant="caption" color="danger">
-                    Degraded — some inputs were stale; weights were redistributed.
-                </Text>
+            {onPress ? (
+                <Pressable
+                    onPress={() => onPress(id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View hazard detail for ${name}`}
+                    style={({ pressed }) => [
+                        styles.detailBtn,
+                        { backgroundColor: theme.colors.primary },
+                        pressed && styles.pressed,
+                    ]}
+                >
+                    <Icon name="information-circle-outline" size={16} color={theme.colors.onPrimary} />
+                    <Text variant="label" style={{ color: theme.colors.onPrimary }}>
+                        View Hazard Detail
+                    </Text>
+                </Pressable>
             ) : null}
         </Card>
-    )
-
-    if (!onPress) return body
-    return (
-        <Pressable onPress={() => onPress(id)} accessibilityRole="button">
-            {({ pressed }) => <View style={pressed && styles.pressed}>{body}</View>}
-        </Pressable>
     )
 }
 
 const styles = StyleSheet.create({
-    card: { gap: spacing.sm },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
-    heading: { gap: spacing.xs, flexShrink: 1 },
+    card: {
+        gap: spacing.md,
+        boxShadow: '0px 4px 2px rgba(0, 0, 0, 0.05)',
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+        borderWidth: 2,
+    },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+    leftCol: { flex: 1, gap: spacing.xs },
+    rightCol: { alignItems: 'center', gap: 2 },
     scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
-    score: { fontSize: 40, fontWeight: '700', lineHeight: 44 },
+    score: { fontSize: 40, fontWeight: '800', lineHeight: 44 },
+    category: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
     pressed: { opacity: 0.7 },
+    focusBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        paddingVertical: spacing.md,
+        borderRadius: 10,
+        borderWidth: StyleSheet.hairlineWidth,
+        backgroundColor: 'white',
+    },
+    detailBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: spacing.xs,
+        paddingVertical: spacing.md,
+        borderRadius: 10,
+    },
 })

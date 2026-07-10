@@ -1,6 +1,6 @@
 import { useActionState, useEffect, useState } from 'react'
 import { AxiosError } from 'axios'
-import { Map, Megaphone, History, Waves } from 'lucide-react'
+import { Map, Megaphone, History, Waves, Eye, EyeClosed } from 'lucide-react'
 import { LoginSchema } from './schemas/LoginSchema'
 import { Field, FieldSet, FieldLabel, FieldGroup, FieldDescription } from '@/common/ui/field'
 import { Input } from '@/common/ui/input'
@@ -34,6 +34,7 @@ const Login = () => {
 	// runs, so we own the values here to keep them on a failed attempt.
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
+	const [showPassword, setShowPassword] = useState<boolean>(false);
 
 	const initialState: LoginState = {errors: {}};
 
@@ -64,6 +65,8 @@ const Login = () => {
 			return { errors: {}, formError: humanizeLoginError(err) };
 		}
 	}
+
+	const toggleShowPassword = (): void => setShowPassword(prev => !prev);
 
 	const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
@@ -138,15 +141,27 @@ const Login = () => {
 									<FieldLabel htmlFor='password'>Password</FieldLabel>
 									<Button type='button' variant='link' className='h-auto p-0 text-xs'>Forgot password?</Button>
 								</div>
-								<Input
-									id='password'
-									type='password'
-									name='password'
-									autoComplete='current-password'
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									aria-invalid={!!state.errors.password}
-								/>
+								<div className='flex items-center gap-2'>
+									<Input
+										id='password'
+										type={showPassword ? "text" : "password"}
+										name='password'
+										autoComplete='current-password'
+										value={password}
+										onChange={(e) => setPassword(e.target.value)}
+										aria-invalid={!!state.errors.password}
+									/>
+									<Button 
+									variant={"ghost"}
+									onClick={toggleShowPassword}
+									className="cursor-pointer">
+										{showPassword ?
+											<EyeClosed />
+											:
+											<Eye />
+										}
+									</Button>
+								</div>
 								{state.errors.password &&
 									<FieldDescription className='text-destructive'>{state.errors.password}</FieldDescription>
 								}
