@@ -1,53 +1,60 @@
 /**
- * Anonymous phone-first registration endpoints (3 phases). Raw axios — these are
- * AllowAny and pre-auth, so the shared apiClient's token/refresh logic is moot.
+ * Anonymous phone-first registration endpoints (3 phases). Branch `ui-build`
+ * runs with no backend — every phase is a no-op that "succeeds" after a short
+ * delay; `verify` accepts any 6-digit code (the UI's zod schema already
+ * enforces the 6-digit shape, mirroring this project's existing `123456`
+ * OTP dev-bypass convention). Kept as a separate module (not routed through
+ * `apiClient`) to match the real "raw axios, pre-auth" contract.
  */
-import axios from 'axios'
-
-import { API_BASE_URL } from '@/core/config'
-import type { TokenPair } from '@/features/auth/types/authTypes'
 import type { PublicBarangayCollection } from '@/features/gis/types'
+import { setCurrentUserRole } from '@/mocks/db'
+import barangaysFixture from '@/mocks/fixtures/barangays'
+import { createFakeAccessToken } from '@/mocks/fakeJwt'
+import { delay } from '@/mocks/utils'
 
+import type { TokenPair } from '@/features/auth/types/authTypes'
 import type { RegistrationAddress } from '../types'
 
-const CONFIG = { headers: { 'X-Client': 'mobile' } }
-
-/** Public barangay boundaries (geometry + name) for pre-auth point-in-polygon. */
+/** Public barangay boundaries (geometry + name) for pre-auth point-in-polygon.
+ * Derived from the full barangays fixture (same ids/names/geometry) rather
+ * than hand-authoring a second copy of the geometry. */
 export async function getPublicBarangays(): Promise<PublicBarangayCollection> {
-    const { data } = await axios.get<PublicBarangayCollection>(
-        `${API_BASE_URL}/api/barangays/public/`,
-        CONFIG,
-    )
-    return data
+    await delay()
+    return {
+        type: 'FeatureCollection',
+        features: barangaysFixture.features.map((feature) => ({
+            type: 'Feature',
+            geometry: feature.geometry,
+            properties: { id: feature.properties.id, name: feature.properties.name },
+        })),
+    }
 }
 
 /** Phase 1 — create the pending account and send an OTP. */
-export async function registerStart(
-    phone_number: string,
-    address: RegistrationAddress,
-): Promise<void> {
-    await axios.post(`${API_BASE_URL}/api/auth/register/start/`, { phone_number, address }, CONFIG)
+export async function registerStart(_phone_number: string, _address: RegistrationAddress): Promise<void> {
+    await delay()
 }
 
 /** Re-send the OTP for a pending registration. */
-export async function registerResend(phone_number: string): Promise<void> {
-    await axios.post(`${API_BASE_URL}/api/auth/register/resend/`, { phone_number }, CONFIG)
+export async function registerResend(_phone_number: string): Promise<void> {
+    await delay()
 }
 
-/** Phase 2 — verify the OTP (records terms acceptance server-side). */
-export async function registerVerify(phone_number: string, code: string): Promise<void> {
-    await axios.post(`${API_BASE_URL}/api/auth/register/verify/`, { phone_number, code }, CONFIG)
+/** Phase 2 — verify the OTP (records terms acceptance server-side). Any
+ * 6-digit code is accepted — the form's zod schema already enforces the shape. */
+export async function registerVerify(_phone_number: string, _code: string): Promise<void> {
+    await delay()
 }
 
-/** Phase 3 — set the password, activate, and receive tokens (lands logged in). */
-export async function registerSetPassword(
-    phone_number: string,
-    password: string,
-): Promise<TokenPair> {
-    const { data } = await axios.post<TokenPair>(
-        `${API_BASE_URL}/api/auth/register/set-password/`,
-        { phone_number, password },
-        CONFIG,
-    )
-    return data
+/** Phase 3 — set the password, activate, and receive tokens (lands logged in).
+ * New registrants have no username to infer a demo role from, so they always
+ * land as `resident`. */
+export async function registerSetPassword(phone_number: string, _password: string): Promise<TokenPair> {
+    await delay()
+    setCurrentUserRole('resident')
+    const claims = { user_id: 1, username: phone_number, role: 'resident' as const }
+    return {
+        access: createFakeAccessToken(claims),
+        refresh: createFakeAccessToken(claims, 60 * 60 * 24 * 30),
+    }
 }

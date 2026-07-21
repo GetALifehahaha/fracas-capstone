@@ -172,6 +172,11 @@ export function LoginScreen() {
                                 <Text style={styles.footerLink}>Create an account</Text>
                             </Pressable>
                         </View>
+
+                        <Text style={styles.demoHint}>
+                            Demo build — sign in with 09170000001 (admin), 09170000002 (operator),
+                            or any other valid PH mobile number (resident). Any password.
+                        </Text>
                     </SafeAreaView>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -327,4 +332,11 @@ const styles = StyleSheet.create({
     },
     footerText: { color: C.muted, fontSize: 14 },
     footerLink: { color: C.primary, fontSize: 14, fontWeight: '700' },
+
+    demoHint: {
+        color: C.muted,
+        fontSize: 11,
+        textAlign: 'center',
+        marginTop: 12,
+    },
 })

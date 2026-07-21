@@ -1,32 +1,31 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { AutoDetectConfig, SystemStatus } from '../types/system'
+import * as db from '@/mocks/db'
+import { delay } from '@/mocks/utils'
 
 export const getSystemStatus = async (): Promise<SystemStatus> => {
-    const { data } = await apiClient.get<SystemStatus>('/api/admin/system/status/')
-    return data
+    await delay()
+    return db.getSystemStatus()
 }
 
 export const runPipeline = async (): Promise<{ detail: string }> => {
-    const { data } = await apiClient.post('/api/admin/system/pipeline/run/')
-    return data
+    await delay(600)
+    return { detail: 'Pipeline run queued.' }
 }
 
 export const runRetention = async (): Promise<{ detail: string }> => {
-    const { data } = await apiClient.post('/api/admin/system/retention/run/')
-    return data
+    await delay(600)
+    return { detail: 'Retention cleanup queued.' }
 }
 
 export const getAutoDetectConfig = async (): Promise<AutoDetectConfig> => {
-    const { data } = await apiClient.get<AutoDetectConfig>('/api/flood-events/auto-detect-config/')
-    return data
+    await delay()
+    return db.getAutoDetectConfig()
 }
 
 export const updateAutoDetectConfig = async (
     payload: Partial<AutoDetectConfig>,
 ): Promise<AutoDetectConfig> => {
-    const { data } = await apiClient.patch<AutoDetectConfig>(
-        '/api/flood-events/auto-detect-config/',
-        payload,
-    )
-    return data
+    await delay(400)
+    return db.updateAutoDetectConfig(payload)
 }

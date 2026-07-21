@@ -175,6 +175,9 @@ const Login = () => {
 					<FieldDescription className='text-center text-xs'>
 						Authorized personnel — Zamboanga City DRRMO
 					</FieldDescription>
+					<FieldDescription className='text-center text-xs'>
+						Demo build — sign in as <code>admin</code>, <code>operator</code>, or <code>resident</code> (any password)
+					</FieldDescription>
 				</div>
 			</form>
 		</div>

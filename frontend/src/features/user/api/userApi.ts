@@ -1,19 +1,21 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { CurrentUser, PasswordChange, ProfileUpdate } from '../types'
+import * as db from '@/mocks/db'
+import { delay } from '@/mocks/utils'
 
-/** The signed-in user's profile. */
 export const getCurrentUser = async (): Promise<CurrentUser> => {
-    const { data } = await apiClient.get<CurrentUser>('/api/auth/users/me/')
-    return data
+    await delay()
+    return db.getCurrentUser()
 }
 
-/** Update editable profile fields (name, email). */
 export const updateCurrentUser = async (payload: ProfileUpdate): Promise<CurrentUser> => {
-    const { data } = await apiClient.patch<CurrentUser>('/api/auth/users/me/', payload)
-    return data
+    await delay(400)
+    return db.updateCurrentUser(payload)
 }
 
-/** Change the account password (djoser `set_password`; 204 on success). */
+/** The mock store doesn't track a real password, so there's nothing to check
+ * or update — the payload is kept so call sites don't need to change. */
 export const changePassword = async (payload: PasswordChange): Promise<void> => {
-    await apiClient.post('/api/auth/users/set_password/', payload)
+    void payload
+    await delay(400)
 }

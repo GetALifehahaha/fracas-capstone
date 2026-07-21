@@ -1,4 +1,4 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type {
     FloodEvent,
     FloodEventChange,
@@ -9,97 +9,84 @@ import type {
     Operator,
     Paginated,
 } from '../types/api'
+import operatorsFixture from '@/mocks/fixtures/operators'
+import * as db from '@/mocks/db'
+import { delay, paginate } from '@/mocks/utils'
 
-/** Operators + admins as {id, name}, for the report-source picker (unpaginated). */
 export const getOperators = async (): Promise<Operator[]> => {
-    const { data } = await apiClient.get<Operator[]>('/api/operators/')
-    return data
+    await delay()
+    return operatorsFixture
 }
 
-/** Paginated, filterable flood-history list. */
 export const getFloodEvents = async (
     filters: FloodEventFilters = {},
 ): Promise<Paginated<FloodEvent>> => {
-    const { data } = await apiClient.get<Paginated<FloodEvent>>('/api/flood-events/', {
-        params: filters,
-    })
-    return data
+    await delay()
+    return paginate(db.listFloodEvents(filters), filters.page)
 }
 
-/** Full flood event: stored fields + response timeline + derived telemetry. */
 export const getFloodEvent = async (id: number): Promise<FloodEventDetail> => {
-    const { data } = await apiClient.get<FloodEventDetail>(`/api/flood-events/${id}/`)
-    return data
+    await delay()
+    const event = db.getFloodEvent(id)
+    if (!event) throw new Error(`Flood event ${id} not found`)
+    return event
 }
 
-/** Create a flood event (operator-only). */
 export const createFloodEvent = async (payload: FloodEventInput): Promise<FloodEvent> => {
-    const { data } = await apiClient.post<FloodEvent>('/api/flood-events/', payload)
-    return data
+    await delay(400)
+    return db.createFloodEvent(payload)
 }
 
-/** Edit a flood event (operator-only). */
 export const updateFloodEvent = async (
     id: number,
     payload: FloodEventInput,
 ): Promise<FloodEvent> => {
-    const { data } = await apiClient.patch<FloodEvent>(`/api/flood-events/${id}/`, payload)
-    return data
+    await delay(400)
+    return db.updateFloodEvent(id, payload)
 }
 
-/** Soft-delete a flood event (operator-only); recoverable via restore for 6h. */
 export const deleteFloodEvent = async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/flood-events/${id}/`)
+    await delay(300)
+    db.deleteFloodEvent(id)
 }
 
-/** Audit trail (append-only) for one event. */
 export const getFloodEventChanges = async (id: number): Promise<FloodEventChange[]> => {
-    const { data } = await apiClient.get<FloodEventChange[]>(`/api/flood-events/${id}/changes/`)
-    return data
+    await delay()
+    return db.listFloodEventChanges(id)
 }
 
-/** Confirm an (auto-drafted) event, recording the confirming operator. */
 export const confirmFloodEvent = async (id: number): Promise<FloodEventDetail> => {
-    const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/confirm/`)
-    return data
+    await delay(300)
+    return db.confirmFloodEvent(id)
 }
 
-/** Resolve an event by setting its end time. */
 export const resolveFloodEvent = async (
     id: number,
     endedAt: string,
 ): Promise<FloodEventDetail> => {
-    const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/resolve/`, {
-        ended_at: endedAt,
-    })
-    return data
+    await delay(300)
+    return db.resolveFloodEvent(id, endedAt)
 }
 
-/** Undo a soft-delete within the recovery window. */
 export const restoreFloodEvent = async (id: number): Promise<FloodEventDetail> => {
-    const { data } = await apiClient.post<FloodEventDetail>(`/api/flood-events/${id}/restore/`)
-    return data
+    await delay(300)
+    return db.restoreFloodEvent(id)
 }
 
-/** Evidence reports (photos + narrative) for an event. */
 export const getFloodEventReports = async (
     id: number,
 ): Promise<Paginated<FloodEventReport>> => {
-    const { data } = await apiClient.get<Paginated<FloodEventReport>>(
-        `/api/flood-events/${id}/reports/`,
-    )
-    return data
+    await delay()
+    return paginate(db.listFloodEventReports(id))
 }
 
-/** Create an evidence report (operator-only). `form` carries description,
- * occurred_at and one or more `uploaded_images` files (multipart). */
 export const createFloodEventReport = async (
     id: number,
     form: FormData,
 ): Promise<FloodEventReport> => {
-    const { data } = await apiClient.post<FloodEventReport>(
-        `/api/flood-events/${id}/reports/`,
-        form,
-    )
-    return data
+    await delay(500)
+    const description = String(form.get('description') ?? '')
+    const occurredAt = String(form.get('occurred_at') ?? new Date().toISOString())
+    const imageCount = form.getAll('uploaded_images').length
+    return db.createFloodEventReport(id, description, occurredAt, imageCount)
 }

@@ -1,4 +1,4 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { Paginated } from '@/features/user/types'
 import type {
     CreateRiskConfigPayload,
@@ -6,43 +6,45 @@ import type {
     UpdateRiskConfigPayload,
     ValidationRun,
 } from '../types/model'
+import * as db from '@/mocks/db'
+import { delay, paginate } from '@/mocks/utils'
 
 export const getRiskConfigs = async (): Promise<Paginated<RiskConfig>> => {
-    const { data } = await apiClient.get<Paginated<RiskConfig>>('/api/admin/risk-configs/')
-    return data
+    await delay()
+    return paginate(db.listRiskConfigs())
 }
 
 export const createRiskConfig = async (payload: CreateRiskConfigPayload): Promise<RiskConfig> => {
-    const { data } = await apiClient.post<RiskConfig>('/api/admin/risk-configs/', payload)
-    return data
+    await delay(400)
+    return db.createRiskConfig(payload)
 }
 
 export const updateRiskConfig = async (
     id: number,
     payload: UpdateRiskConfigPayload,
 ): Promise<RiskConfig> => {
-    const { data } = await apiClient.patch<RiskConfig>(`/api/admin/risk-configs/${id}/`, payload)
-    return data
+    await delay(400)
+    return db.updateRiskConfig(id, payload)
 }
 
 export const activateRiskConfig = async (id: number): Promise<RiskConfig> => {
-    const { data } = await apiClient.post<RiskConfig>(`/api/admin/risk-configs/${id}/activate/`)
-    return data
+    await delay(400)
+    return db.activateRiskConfig(id)
 }
 
 export const getValidationRuns = async (page = 1): Promise<Paginated<ValidationRun>> => {
-    const { data } = await apiClient.get<Paginated<ValidationRun>>('/api/admin/validation-runs/', {
-        params: { page },
-    })
-    return data
+    await delay()
+    return paginate(db.listValidationRuns(), page)
 }
 
 export const getValidationRun = async (id: number): Promise<ValidationRun> => {
-    const { data } = await apiClient.get<ValidationRun>(`/api/admin/validation-runs/${id}/`)
-    return data
+    await delay()
+    const run = db.getValidationRun(id)
+    if (!run) throw new Error(`Validation run ${id} not found`)
+    return run
 }
 
 export const createValidationRun = async (): Promise<ValidationRun> => {
-    const { data } = await apiClient.post<ValidationRun>('/api/admin/validation-runs/')
-    return data
+    await delay(300)
+    return db.createValidationRun()
 }

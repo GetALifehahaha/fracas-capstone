@@ -1,4 +1,4 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { AccountChange, Paginated } from '@/features/user/types'
 import type {
     AdminUser,
@@ -7,48 +7,50 @@ import type {
     ResetPasswordResult,
     UpdateUserPayload,
 } from '../types/user'
+import * as db from '@/mocks/db'
+import { delay, paginate } from '@/mocks/utils'
 
 export const getAdminUsers = async (
     filters: AdminUserFilters = {},
 ): Promise<Paginated<AdminUser>> => {
-    const { data } = await apiClient.get<Paginated<AdminUser>>('/api/admin/users/', {
-        params: filters,
-    })
-    return data
+    await delay()
+    return paginate(db.listAdminUsers(filters), filters.page)
 }
 
 export const getAdminUser = async (id: number): Promise<AdminUser> => {
-    const { data } = await apiClient.get<AdminUser>(`/api/admin/users/${id}/`)
-    return data
+    await delay()
+    const user = db.getAdminUser(id)
+    if (!user) throw new Error(`Admin user ${id} not found`)
+    return user
 }
 
 export const createAdminUser = async (payload: CreateUserPayload): Promise<AdminUser> => {
-    const { data } = await apiClient.post<AdminUser>('/api/admin/users/', payload)
-    return data
+    await delay(400)
+    return db.createAdminUser(payload)
 }
 
 export const updateAdminUser = async (
     id: number,
     payload: UpdateUserPayload,
 ): Promise<AdminUser> => {
-    const { data } = await apiClient.patch<AdminUser>(`/api/admin/users/${id}/`, payload)
-    return data
+    await delay(400)
+    return db.updateAdminUser(id, payload)
 }
 
+/** `id` isn't needed by the mock store (there's only one demo password to
+ * reset), but the parameter is kept so call sites don't need to change. */
 export const resetAdminUserPassword = async (id: number): Promise<ResetPasswordResult> => {
-    const { data } = await apiClient.post<ResetPasswordResult>(
-        `/api/admin/users/${id}/reset-password/`,
-    )
-    return data
+    void id
+    await delay(400)
+    return db.resetAdminUserPassword()
 }
 
+/** `id` isn't needed by the mock store — see resetAdminUserPassword above. */
 export const getAdminUserChanges = async (
     id: number,
     page = 1,
 ): Promise<Paginated<AccountChange>> => {
-    const { data } = await apiClient.get<Paginated<AccountChange>>(
-        `/api/admin/users/${id}/changes/`,
-        { params: { page } },
-    )
-    return data
+    void id
+    await delay()
+    return paginate(db.listAdminUserChanges(), page)
 }

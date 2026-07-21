@@ -1,19 +1,15 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from static fixtures / mock db. */
 import type { EvacuationCollection, Paginated, PoiKind, PoiLog } from './types'
+import evacuationCentersFixture from '@/mocks/fixtures/evacuationCenters'
+import { listPoiLogs } from '@/mocks/db'
+import { delay, paginate } from '@/mocks/utils'
 
-const EVAC_URL = '/api/evacuation/centers/'
-
-/** Active (or, for operators, all) evacuation centers as GeoJSON. Read-only —
- * the console no longer creates/edits/deletes centers (see ENGINE_V2_PLAN Phase 4). */
 export const getEvacuationCenters = async (): Promise<EvacuationCollection> => {
-    const { data } = await apiClient.get<EvacuationCollection>(EVAC_URL)
-    return data
+    await delay()
+    return evacuationCentersFixture
 }
 
-/** POI audit log (operator). Optionally scoped to a POI kind. */
 export const getPoiLogs = async (poiType?: PoiKind): Promise<Paginated<PoiLog>> => {
-    const { data } = await apiClient.get<Paginated<PoiLog>>('/api/poi/logs/', {
-        params: poiType ? { poi_type: poiType } : undefined,
-    })
-    return data
+    await delay()
+    return paginate(listPoiLogs(poiType))
 }

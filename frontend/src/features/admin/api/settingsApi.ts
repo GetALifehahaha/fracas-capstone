@@ -1,26 +1,19 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { SettingsByGroup, SettingsGroup } from '../types/settings'
-
-/** Each settings group is one admin-gated singleton endpoint. */
-const GROUP_URL: Record<SettingsGroup, string> = {
-    alerting: '/api/admin/settings/alerting/',
-    retention: '/api/admin/settings/retention/',
-    organization: '/api/admin/settings/organization/',
-    toggles: '/api/admin/settings/toggles/',
-    registration: '/api/admin/settings/registration/',
-}
+import * as db from '@/mocks/db'
+import { delay } from '@/mocks/utils'
 
 export const getSettings = async <G extends SettingsGroup>(
     group: G,
 ): Promise<SettingsByGroup[G]> => {
-    const { data } = await apiClient.get<SettingsByGroup[G]>(GROUP_URL[group])
-    return data
+    await delay()
+    return db.getSettings(group)
 }
 
 export const updateSettings = async <G extends SettingsGroup>(
     group: G,
     payload: Partial<SettingsByGroup[G]>,
 ): Promise<SettingsByGroup[G]> => {
-    const { data } = await apiClient.patch<SettingsByGroup[G]>(GROUP_URL[group], payload)
-    return data
+    await delay(400)
+    return db.updateSettings(group, payload)
 }

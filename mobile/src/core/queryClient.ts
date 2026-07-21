@@ -24,4 +24,7 @@ export const queryClient = new QueryClient({
 
 const persister = createAsyncStoragePersister({ storage: AsyncStorage })
 
-persistQueryClient({ queryClient, persister, maxAge: ONE_DAY })
+// Bumped when the mock API layer replaced the real backend (branch ui-build) —
+// invalidates any cache written by a dev device against the real API so stale
+// real responses never shadow mock fixtures after this change.
+persistQueryClient({ queryClient, persister, maxAge: ONE_DAY, buster: 'mock-v1' })

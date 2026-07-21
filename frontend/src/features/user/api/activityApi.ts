@@ -1,10 +1,9 @@
-import apiClient from '@/app/apiClient'
+/** Branch ui-build runs with no backend — served from an in-memory mock db. */
 import type { FloodActivity, Paginated } from '../types'
+import { listMyActivity } from '@/mocks/db'
+import { delay, paginate } from '@/mocks/utils'
 
-/** The signed-in operator's own flood-event actions, newest first. */
 export const getMyFloodActivity = async (): Promise<Paginated<FloodActivity>> => {
-    const { data } = await apiClient.get<Paginated<FloodActivity>>(
-        '/api/flood-events/my-activity/',
-    )
-    return data
+    await delay()
+    return paginate(listMyActivity())
 }
