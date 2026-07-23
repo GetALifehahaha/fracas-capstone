@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Map, MapControls } from '@/common/ui/map'
-import type { RiskFeatureCollection } from '../types/api'
+import type { RiskFeatureCollection, SusceptibilityLevel } from '../types/api'
 import { featureBoundsById } from '../utils/bounds'
 import BarangayChoropleth from './BarangayChoropleth'
 import BarangayTooltip from './BarangayTooltip'
@@ -8,6 +8,7 @@ import HazardZoneLayer from './HazardZoneLayer'
 import EvacuationLayer from '../poi/EvacuationLayer'
 import BarangaySearch from './BarangaySearch'
 import { type LayerVisibility } from '../constants/layers'
+import { type ZoneColorMode } from '../constants/susceptibility'
 
 interface GISMapProps {
     data: RiskFeatureCollection | null
@@ -15,6 +16,9 @@ interface GISMapProps {
     onSelect: (id: number | null) => void
     panelWidth: number
     layers: LayerVisibility
+    zoneColorMode: ZoneColorMode
+    /** Susceptibility levels currently switched on — filters the hazard zones. */
+    visibleLevels: SusceptibilityLevel[]
 }
 
 /** Centre of a barangay's bounding box, to anchor its pinned tooltip. */
@@ -26,7 +30,15 @@ const centroidOf = (
     return box ? [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2] : null
 }
 
-const GISMap = ({ data, selectedId, onSelect, panelWidth, layers }: GISMapProps) => {
+const GISMap = ({
+    data,
+    selectedId,
+    onSelect,
+    panelWidth,
+    layers,
+    zoneColorMode,
+    visibleLevels,
+}: GISMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null)
 
     const pinnedCentroid =
@@ -77,7 +89,11 @@ const GISMap = ({ data, selectedId, onSelect, panelWidth, layers }: GISMapProps)
                 {/* Primary hazard geometry — rendered after the choropleth so it
                     reads on top; the choropleth's fill is tuned thin (see
                     BarangayChoropleth) to read as an administrative overlay. */}
-                <HazardZoneLayer visible={layers.hazard} />
+                <HazardZoneLayer
+                    visible={layers.hazard}
+                    colorBy={zoneColorMode}
+                    visibleLevels={visibleLevels}
+                />
                 <EvacuationLayer visible={layers.evacuation} focusedBarangayId={selectedId} />
             </Map>
         </div>
