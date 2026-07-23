@@ -1,3 +1,4 @@
+import { Layers, Waves } from 'lucide-react'
 import { Card } from '@/common/ui/card'
 import { CATEGORY_LABELS, RISK_COLORS } from '../constants/risk'
 import type { RiskCategory } from '../types/api'
@@ -12,6 +13,12 @@ import {
 
 // Low → critical, so the swatch column reads as a white→red ramp.
 const RISK_ORDER: RiskCategory[] = ['low', 'medium', 'high', 'critical']
+
+/** The hazard-zone color toggles (names for the icon-only control in the toolbar). */
+const TOGGLES: { key: ZoneColorMode; label: string; icon: typeof Layers }[] = [
+    { key: 'susceptibility', label: 'Susceptibility', icon: Layers },
+    { key: 'risk', label: 'Flood risk', icon: Waves },
+]
 
 const Swatch = ({ color, label }: { color: string; label: string }) => (
     <span className='flex items-center gap-2'>
@@ -69,6 +76,29 @@ const Legend = ({ view }: { view: ZoneColorMode }) => (
                     <h5 className='text-muted-foreground text-xs font-medium'>{label}</h5>
                 </span>
             ))}
+        </div>
+
+        <Separator />
+
+        <div className='flex flex-col gap-1'>
+            <h5 className='font-medium'>Toggles</h5>
+            {TOGGLES.map(({ key, label, icon: Icon }) => {
+                const active = view === key
+                return (
+                    <span key={key} className='flex items-center gap-2'>
+                        <Icon
+                            className='size-3.5 shrink-0'
+                            style={{ opacity: active ? 1 : 0.4 }}
+                        />
+                        <h5
+                            className={`text-xs font-medium ${active ? 'text-foreground' : 'text-muted-foreground'}`}
+                        >
+                            {label}
+                            {active ? ' ·' : ''}
+                        </h5>
+                    </span>
+                )
+            })}
         </div>
     </Card>
 )

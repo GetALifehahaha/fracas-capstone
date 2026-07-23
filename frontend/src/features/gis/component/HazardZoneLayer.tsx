@@ -8,7 +8,7 @@ import {
     fillColorExpression as susceptibilityColorExpression,
     type ZoneColorMode,
 } from '../constants/susceptibility'
-import type { HazardZoneCollection } from '../types/api'
+import type { HazardZoneCollection, SusceptibilityLevel } from '../types/api'
 
 const SOURCE = 'hazard-zones'
 const FILL = 'hazard-zone-fill'
@@ -34,6 +34,8 @@ interface Props {
     visible: boolean
     /** Whether the zones are shaded by susceptibility class or computed risk. */
     colorBy: ZoneColorMode
+    /** Only zones of these susceptibility levels are shown (per the layer toggles). */
+    visibleLevels: SusceptibilityLevel[]
 }
 
 /** First symbol (label) layer, so our fills sit under place names, not over them. */
@@ -46,10 +48,13 @@ const firstSymbolLayerId = (map: MapLibreMap): string | undefined =>
  * than the static susceptibility class — so a high-susceptibility zone reads as
  * calm when it isn't raining and lights up only when rain actually arrives.
  */
-const HazardZoneLayer = ({ visible, colorBy }: Props) => {
+const HazardZoneLayer = ({ visible, colorBy, visibleLevels }: Props) => {
     const { map, isLoaded } = useMap()
     const { data } = useHazardZones()
     const { data: zoneRisk } = useZoneRisk()
+
+    // Key on the sorted level set so the filter effect only re-runs on a real change.
+    const levelKey = [...visibleLevels].sort().join(',')
 
     // Join each zone's computed risk category onto its feature properties.
     const joined = useMemo<HazardZoneCollection | undefined>(() => {
@@ -116,6 +121,15 @@ const HazardZoneLayer = ({ visible, colorBy }: Props) => {
         if (!map || !isLoaded || !map.getLayer(FILL)) return
         map.setPaintProperty(FILL, 'fill-color', colorExpressionFor(colorBy))
     }, [map, isLoaded, colorBy])
+
+    // Show only the susceptibility levels switched on in the layer toggles.
+    useEffect(() => {
+        if (!map || !isLoaded || !map.getLayer(FILL)) return
+        const filter: ExpressionSpecification = ['in', ['get', 'level'], ['literal', visibleLevels]]
+        for (const id of [FILL, LINE]) if (map.getLayer(id)) map.setFilter(id, filter)
+        // levelKey captures the level set; visibleLevels itself is a fresh array each render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [map, isLoaded, levelKey])
 
     useEffect(() => {
         if (!map || !isLoaded) return

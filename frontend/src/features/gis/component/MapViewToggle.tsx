@@ -1,6 +1,6 @@
 import { Layers, Waves } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/common/ui/tooltip'
 import { Button } from '@/common/ui/button'
-import { ButtonGroup } from '@/common/ui/button-group'
 import type { ZoneColorMode } from '../constants/susceptibility'
 
 interface Props {
@@ -14,29 +14,38 @@ const OPTIONS: { key: ZoneColorMode; label: string; icon: typeof Layers }[] = [
 ]
 
 /**
- * Segmented control that flips the hazard-zone fill between the static
- * susceptibility classes (green→red) and the computed flood risk (white→red).
+ * Icon-only segmented control that flips the hazard-zone fill between the static
+ * susceptibility classes and the computed flood risk. The names live in the
+ * Legend's "Toggles" group.
  */
 const MapViewToggle = ({ value, onChange }: Props) => (
-    <ButtonGroup>
+    <>
         {OPTIONS.map(({ key, label, icon: Icon }) => {
             const active = value === key
             return (
-                <Button
-                    key={key}
-                    type='button'
-                    size='sm'
-                    variant={active ? 'default' : 'ghost'}
-                    aria-pressed={active}
-                    onClick={() => onChange(key)}
-                    className='cursor-pointer gap-1.5'
-                >
-                    <Icon className='size-4' />
-                    {label}
-                </Button>
+                <Tooltip key={key}>
+                    <TooltipTrigger
+                        render={
+                            <Button
+                                type='button'
+                                onClick={() => onChange(key)}
+                                aria-label={label}
+                                aria-pressed={active}
+                                variant='ghost'
+                                className='relative flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer'
+                            >
+                                <Icon className='size-4' opacity={active ? 1 : 0.4} />
+                                {active && (
+                                    <span className='bg-primary absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full' />
+                                )}
+                            </Button>
+                        }
+                    />
+                    <TooltipContent>{`Color by ${label.toLowerCase()}`}</TooltipContent>
+                </Tooltip>
             )
         })}
-    </ButtonGroup>
+    </>
 )
 
 export default MapViewToggle

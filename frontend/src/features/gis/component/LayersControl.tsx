@@ -20,7 +20,7 @@ const LayersControl = ({ layers, onToggle }: Props) => (
             const on = layers[key]
             return (
                 <>
-                {key == "low" && <ButtonGroupSeparator />}
+                {key == "very_low" && <ButtonGroupSeparator />}
                 <Tooltip key={key}>
                     <TooltipTrigger
                         render={
