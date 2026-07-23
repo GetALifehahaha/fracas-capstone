@@ -138,10 +138,6 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
     return (
         <Card style={styles.breakdown}>
             <Text variant="label">Zone risk</Text>
-            <Text variant="caption" color="textMuted">
-                Each susceptibility zone scored rainfall × susceptibility; the barangay score is
-                their area-weighted average (by how much land each zone covers).
-            </Text>
             {data.zones.map((zone) => (
                 <ZoneRow key={zone.level} zone={zone} />
             ))}

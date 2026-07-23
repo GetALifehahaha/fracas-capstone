@@ -175,13 +175,7 @@ const ZoneBreakdown = ({ data }: { data: BarangayRisk }) => {
     if (!data.zones?.length) return null
     return (
         <Card className='gap-3'>
-            <div>
-                <Label className='font-medium'>Zone risk</Label>
-                <p className='text-muted-foreground text-xs'>
-                    Each susceptibility zone scored rainfall × susceptibility; the barangay score is
-                    their area-weighted average (by how much land each zone covers).
-                </p>
-            </div>
+            <Label className='font-medium'>Zone risk</Label>
             <div className='flex flex-col gap-2.5'>
                 {data.zones.map((zone) => (
                     <ZoneRow key={zone.level} zone={zone} />
