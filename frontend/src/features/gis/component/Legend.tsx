@@ -59,11 +59,6 @@ const Legend = ({ view }: { view: ZoneColorMode }) => (
                     ))}
                 </>
             )}
-            <p className='text-muted-foreground mt-0.5 text-[10px] leading-tight'>
-                {view === 'susceptibility'
-                    ? 'Zones by hazard class. Barangay tint = average risk.'
-                    : 'Zones & barangays by current flood risk.'}
-            </p>
         </div>
 
         <Separator />
